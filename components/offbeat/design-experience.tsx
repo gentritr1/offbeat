@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { SpeakerPoster } from "./speaker-poster";
 import {
   CubeIcon,
   HandGrabbingIcon,
@@ -11,12 +12,7 @@ import {
 } from "@phosphor-icons/react";
 const Speaker = dynamic(() => import("./speaker"), {
   ssr: false,
-  loading: () => (
-    <div className="canvas-loading">
-      Getting under the grille
-      <span className="loading-line" />
-    </div>
-  ),
+  loading: () => <SpeakerPoster variant="design" />,
 });
 const anatomy = [
   {

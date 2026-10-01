@@ -1,20 +1,31 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
-/** Imperative beat input, so playback never re-renders React. */
-export type SpeakerPulse = { hit: (kick: boolean) => void };
+import { SpeakerPoster } from "./speaker-poster";
+import { connectWorker, readBrandPixels } from "@/lib/offbeat/three/bridge";
+import { swingFromDrag } from "@/lib/offbeat/three/motion";
+import type {
+  Beat,
+  SceneAction,
+  SceneController,
+  SceneEvent,
+  SceneState,
+} from "@/lib/offbeat/three/protocol";
+/** Beat traffic bypasses React. Pattern updates happen only on edits/preset changes. */
+export type SpeakerPulse = {
+  hit: (beat: Beat) => void;
+  setPattern: (pattern: boolean[][]) => void;
+  stop: () => void;
+};
 type Props = {
   color: string;
   exploded?: boolean;
   rotation?: number;
   compact?: boolean;
-  /** 50 (straight) to 75: turns the knurled dial. */
   swing?: number;
-  /** Frames the speaker larger (>1) or smaller in its stage. */
   zoom?: number;
   pulse?: React.RefObject<SpeakerPulse | null>;
+  pattern?: boolean[][];
+  onSwingChange?: (value: number) => void;
 };
 export default function Speaker({
   color,
@@ -24,513 +35,340 @@ export default function Speaker({
   swing = 50,
   zoom = 1,
   pulse,
+  pattern,
+  onSwingChange,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
-  const wake = useRef<() => void>(() => {});
-  const target = useRef({ color, exploded, rotation, swing });
-  target.current = { color, exploded, rotation, swing };
+  const dial = useRef<HTMLDivElement>(null);
+  const controller = useRef<SceneController | null>(null);
+  const values = useRef({
+    color,
+    exploded,
+    rotation,
+    compact,
+    swing,
+    zoom,
+    pattern,
+    onSwingChange,
+  });
+  values.current = {
+    color,
+    exploded,
+    rotation,
+    compact,
+    swing,
+    zoom,
+    pattern,
+    onSwingChange,
+  };
   const [failed, setFailed] = useState(false);
-  // Build the scene only when it nears the viewport, so off-screen speakers
-  // do not add to the main-thread work at page load.
   const [near, setNear] = useState(false);
-  useEffect(() => wake.current(), [color, exploded, rotation, swing]);
   useEffect(() => {
-    const node = host.current;
-    if (!node || near) return;
+    controller.current?.send({
+      type: "state",
+      state: {
+        color,
+        exploded,
+        rotation,
+        swing,
+        instant: document.documentElement.dataset.input === "keyboard",
+      },
+    });
+  }, [color, exploded, rotation, swing]);
+  useEffect(() => {
+    if (pattern) controller.current?.send({ type: "pattern", pattern });
+  }, [pattern]);
+  useEffect(() => {
+    if (!host.current || near) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) setNear(true);
+      ([entry]) => {
+        if (entry.isIntersecting) setNear(true);
       },
       { rootMargin: "400px" },
     );
-    observer.observe(node);
+    observer.observe(host.current);
     return () => observer.disconnect();
-  }, [near, failed]);
+  }, [near]);
   useEffect(() => {
-    if (!host.current || !near) return;
-    const node = host.current;
-    let renderer: THREE.WebGLRenderer;
-    try {
-      renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-        powerPreference: "high-performance",
-      });
-    } catch {
-      setFailed(true);
-      return;
+    const element = host.current;
+    if (!element || !near || failed) return;
+    const node = element;
+    let cancelled = false,
+      visible = true,
+      initializing = false,
+      usingWorker = false;
+    let canvas: HTMLCanvasElement | null = null;
+    let pendingBeat: Beat | null = null;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    let drag: {
+      id: number;
+      x: number;
+      y: number;
+      lastX: number;
+      lastY: number;
+      swing: number;
+      dial: boolean;
+    } | null = null;
+    const state = (): SceneState => ({
+      // Keep callbacks and React-owned pattern data out of the transferable state.
+      color: values.current.color,
+      exploded: values.current.exploded,
+      rotation: values.current.rotation,
+      swing: values.current.swing,
+      compact: values.current.compact,
+      zoom: values.current.zoom,
+      width: Math.max(1, node.clientWidth),
+      height: Math.max(1, node.clientHeight),
+      dpr: Math.min(devicePixelRatio, 1.75),
+      visible: visible && !document.hidden,
+      reduced: reduced.matches,
+      instant: false,
+    });
+    const send = (action: SceneAction) => controller.current?.send(action);
+    function receive(event: SceneEvent) {
+      if (cancelled) return;
+      if (event.type === "ready") {
+        node.dataset.ready = "true";
+        return;
+      }
+      if (event.type === "error") {
+        if (usingWorker && event.message !== "WebGL context lost") {
+          void initialize(false);
+          return;
+        }
+        send({ type: "dispose" });
+        controller.current = null;
+        setFailed(true);
+        return;
+      }
+      if (event.type === "poster") {
+        node.dispatchEvent(
+          new CustomEvent("speakerposter", { detail: event.blob }),
+        );
+        return;
+      }
+      const frame = event.frame;
+      if (dial.current)
+        dial.current.style.transform = `translate(${frame.dial.x - 24}px, ${frame.dial.y - 24}px)`;
+      node.dataset.step = String(frame.step);
+      // Projected geometry is diagnostic metadata; strip QA still samples rendered pixels.
+      node.dataset.frame = JSON.stringify(frame);
+      node.dispatchEvent(new CustomEvent("speakerframe", { detail: frame }));
     }
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    // Neutral tone mapping keeps finish hues and chroma close to their swatches.
-    renderer.toneMapping = THREE.NeutralToneMapping;
-    renderer.toneMappingExposure = 1;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
-    node.appendChild(renderer.domElement);
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
-    camera.position.set(0, 3.1, 9.2);
-    camera.lookAt(0, 0.05, 0);
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const room = new RoomEnvironment();
-    const environment = pmrem.fromScene(room, 0.04);
-    scene.environment = environment.texture;
-    scene.environmentIntensity = 0.75;
-    room.dispose();
-    pmrem.dispose();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0xc4c1bb, 2));
-    const key = new THREE.DirectionalLight(0xffffff, 4);
-    key.position.set(-4, 8, 5);
-    key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
-    key.shadow.camera.left = -6;
-    key.shadow.camera.right = 6;
-    key.shadow.camera.top = 6;
-    key.shadow.camera.bottom = -6;
-    key.shadow.normalBias = 0.025;
-    key.shadow.bias = -0.0001;
-    key.shadow.radius = 4;
-    scene.add(key);
-    const fill = new THREE.DirectionalLight(0xdbe4ff, 1.5);
-    fill.position.set(5, 3, -4);
-    scene.add(fill);
-    const rim = new THREE.DirectionalLight(0xffffff, 1.5);
-    rim.position.set(-3, 4, -3);
-    scene.add(rim);
-    const root = new THREE.Group();
-    root.rotation.set(0.05, -0.44, -0.04);
-    scene.add(root);
-    const rubber = new THREE.MeshStandardMaterial({
-      color: target.current.color,
-      roughness: 0.58,
-      metalness: 0.02,
-    });
-    const black = new THREE.MeshStandardMaterial({
-      color: "#1c1d1d",
-      roughness: 0.65,
-    });
-    const metal = new THREE.MeshStandardMaterial({
-      color: "#c5c9c8",
-      metalness: 0.95,
-      roughness: 0.27,
-    });
-    const rubberDark = new THREE.MeshStandardMaterial({
-      color: "#282828",
-      roughness: 0.9,
-    });
-    function box(
-      w: number,
-      h: number,
-      d: number,
-      r: number,
-      mat: THREE.Material,
-      x = 0,
-      y = 0,
-      z = 0,
-      parent: THREE.Object3D = root,
-    ) {
-      const m = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 5, r), mat);
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      parent.add(m);
-      return m;
-    }
-    const body = new THREE.Group();
-    root.add(body);
-    box(4.25, 2.62, 1.7, 0.28, rubber, 0, 0, 0, body);
-    const fabricCanvas = document.createElement("canvas");
-    fabricCanvas.width = 128;
-    fabricCanvas.height = 128;
-    const fc = fabricCanvas.getContext("2d")!;
-    fc.fillStyle = "#222321";
-    fc.fillRect(0, 0, 128, 128);
-    for (let y = 0; y < 128; y += 4) {
-      for (let x = 0; x < 128; x += 4) {
-        const b = 42 + ((x * 17 + y * 7) % 25);
-        fc.fillStyle = `rgb(${b},${b},${b})`;
-        fc.fillRect(x + (y % 8 === 0 ? 1 : 0), y, 2, 3);
-        fc.fillStyle = "#111211";
-        fc.fillRect(x + 2, y, 1, 2);
+    async function initialize(preferWorker: boolean) {
+      if (cancelled || initializing) return;
+      initializing = true;
+      try {
+        send({ type: "dispose" });
+        controller.current = null;
+        canvas?.remove();
+        delete node.dataset.ready;
+        canvas = document.createElement("canvas");
+        canvas.setAttribute("aria-hidden", "true");
+        node.prepend(canvas);
+        const brand = await readBrandPixels();
+        if (cancelled) return;
+        usingWorker = preferWorker;
+        let connection: SceneController | null = null;
+        if (preferWorker) {
+          try {
+            connection = connectWorker(canvas, state(), brand, receive);
+          } catch {
+            canvas.remove();
+            canvas = document.createElement("canvas");
+            canvas.setAttribute("aria-hidden", "true");
+            node.prepend(canvas);
+          }
+        }
+        if (!connection) {
+          usingWorker = false;
+          const { createSpeakerScene } =
+            await import("@/lib/offbeat/three/scene");
+          if (cancelled) return;
+          connection = createSpeakerScene(canvas, state(), brand, receive);
+        }
+        controller.current = connection;
+        node.dataset.renderer = usingWorker ? "worker" : "main";
+        if (values.current.pattern)
+          connection.send({ type: "pattern", pattern: values.current.pattern });
+        if (pendingBeat) connection.send({ type: "beat", beat: pendingBeat });
+      } catch {
+        if (!cancelled) setFailed(true);
+      } finally {
+        initializing = false;
       }
     }
-    const weave = new THREE.CanvasTexture(fabricCanvas);
-    weave.colorSpace = THREE.SRGBColorSpace;
-    weave.wrapS = weave.wrapT = THREE.RepeatWrapping;
-    weave.repeat.set(8, 5);
-    weave.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    const fabric = new THREE.MeshStandardMaterial({
-      color: "#adadad",
-      map: weave,
-      bumpMap: weave,
-      bumpScale: 0.018,
-      roughness: 0.96,
-    });
-    const front = new THREE.Group();
-    root.add(front);
-    box(4.05, 2.42, 0.09, 0.22, fabric, 0, 0, 0.882, front);
-    const brandCanvas = document.createElement("canvas");
-    brandCanvas.width = 512;
-    brandCanvas.height = 128;
-    const bc = brandCanvas.getContext("2d")!;
-    let disposed = false;
-    function drawBrand() {
-      bc.clearRect(0, 0, 512, 128);
-      bc.font = `700 semi-expanded 76px ${getComputedStyle(document.body).fontFamily}`;
-      bc.fillStyle = "#ededdf";
-      bc.fillText("offbeat", 15, 88);
-    }
-    drawBrand();
-    const brandTex = new THREE.CanvasTexture(brandCanvas);
-    // Redraw the plate once the brand face has loaded.
-    void document.fonts.ready.then(() => {
-      if (disposed) return;
-      drawBrand();
-      brandTex.needsUpdate = true;
-      wake.current();
-    });
-    brandTex.colorSpace = THREE.SRGBColorSpace;
-    const brand = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.77, 0.193),
-      new THREE.MeshBasicMaterial({
-        map: brandTex,
-        transparent: true,
-        depthWrite: false,
+    if (pulse)
+      pulse.current = {
+        hit(beat) {
+          pendingBeat = beat;
+          send({ type: "beat", beat });
+        },
+        setPattern(next) {
+          send({ type: "pattern", pattern: next });
+        },
+        stop() {
+          pendingBeat = null;
+          send({ type: "stop" });
+        },
+      };
+    const snapshot = () => send({ type: "snapshot" });
+    node.addEventListener("speakersnapshot", snapshot);
+    const resize = new ResizeObserver(() =>
+      send({
+        type: "state",
+        state: {
+          width: Math.max(1, node.clientWidth),
+          height: Math.max(1, node.clientHeight),
+        },
       }),
     );
-    brand.position.set(-1.33, -0.84, 0.939);
-    front.add(brand);
-    // The knurled dial turns as one piece (it is the swing control).
-    const dialGroup = new THREE.Group();
-    dialGroup.position.set(1.05, 1.4, 0.05);
-    body.add(dialGroup);
-    const dial = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.25, 0.25, 0.18, 64),
-      metal,
-    );
-    dial.castShadow = true;
-    dialGroup.add(dial);
-    for (let i = 0; i < 48; i++) {
-      const a = (i / 48) * Math.PI * 2;
-      const notch = new THREE.Mesh(
-        new THREE.BoxGeometry(0.011, 0.12, 0.012),
-        rubberDark,
-      );
-      notch.position.set(Math.sin(a) * 0.251, 0, Math.cos(a) * 0.251);
-      notch.rotation.y = a;
-      dialGroup.add(notch);
-    }
-    const marker = new THREE.Mesh(
-      new THREE.BoxGeometry(0.022, 0.004, 0.11),
-      black,
-    );
-    marker.position.set(0, 0.092, 0.08);
-    dialGroup.add(marker);
-    for (let i = 0; i < 3; i++)
-      box(0.23, 0.03, 0.18, 0.035, black, -1.1 + i * 0.45, 1.315, -0.08, body);
-    const ledIdle = new THREE.Color("#d6ef43");
-    const ledLive = new THREE.Color("#ee512d");
-    const ledMaterial = new THREE.MeshBasicMaterial({ color: ledIdle });
-    const led = new THREE.Mesh(
-      new THREE.SphereGeometry(0.03, 16, 16),
-      ledMaterial,
-    );
-    led.position.set(0.3, 1.326, -0.08);
-    body.add(led);
-    box(2.82, 1.62, 0.055, 0.24, black, 0, 0, -0.865, body);
-    box(0.49, 0.2, 0.02, 0.05, rubberDark, 0, -0.64, -0.91, body);
-    box(0.22, 0.08, 0.02, 0.025, metal, 0, -0.64, -0.925, body);
-    for (const x of [-1.35, 1.35])
-      box(0.6, 0.11, 0.65, 0.045, rubberDark, x, -1.34, 0, body);
-    const attach = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.2, 0.2, 0.06, 40),
-      black,
-    );
-    attach.rotation.z = Math.PI / 2;
-    attach.position.set(2.15, 0.3, 0);
-    body.add(attach);
-    const strapCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(2.16, 0.35, 0),
-      new THREE.Vector3(2.9, 0.17, 0.03),
-      new THREE.Vector3(3.1, -0.35, 0.06),
-      new THREE.Vector3(2.8, -0.65, 0.08),
-      new THREE.Vector3(2.3, -0.1, 0.02),
-      new THREE.Vector3(2.16, 0.3, 0),
-    ]);
-    const strap = new THREE.Mesh(
-      new THREE.TubeGeometry(strapCurve, 64, 0.078, 8, false),
-      fabric,
-    );
-    strap.castShadow = true;
-    body.add(strap);
-    const drivers = new THREE.Group();
-    root.add(drivers);
-    for (const x of [-0.98, 0.98]) {
-      const plate = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.86, 0.86, 0.12, 64),
-        black,
-      );
-      plate.rotation.x = Math.PI / 2;
-      plate.position.set(x, 0, 0.95);
-      drivers.add(plate);
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.73, 0.075, 12, 64),
-        rubberDark,
-      );
-      ring.position.set(x, 0, 1.035);
-      drivers.add(ring);
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.69, 0.22, 64),
-        new THREE.MeshStandardMaterial({
-          color: "#393b3a",
-          metalness: 0.5,
-          roughness: 0.4,
-        }),
-      );
-      cone.rotation.x = -Math.PI / 2;
-      cone.position.set(x, 0, 1.02);
-      drivers.add(cone);
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.26, 32, 16), black);
-      cap.scale.z = 0.36;
-      cap.position.set(x, 0, 1.15);
-      drivers.add(cap);
-    }
-    drivers.visible = false;
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(30, 30),
-      new THREE.ShadowMaterial({ opacity: 0.16 }),
-    );
-    ground.rotation.x = -Math.PI / 2;
-    ground.position.y = -1.48;
-    ground.receiveShadow = true;
-    scene.add(ground);
-    let yaw = -0.44,
-      pitch = 0.05,
-      pointer: number | null = null,
-      lastX = 0,
-      lastY = 0,
-      seen = true,
-      frame = 0,
-      phase = 0,
-      prev = 0;
-    let instant = false;
-    let lost = false;
-    // Beat response: thump squashes the body on a kick, glow lights the LED on any note.
-    let thump = 0;
-    let glow = 0;
-    const desiredColor = new THREE.Color();
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-    let baseZ = 9.4;
-    function placeCamera() {
-      // Pull back while exploded so the grille stays inside the stage.
-      camera.position.set(0, 3.1 + phase * 0.5, baseZ + phase * 3.2);
-      camera.lookAt(0, 0.05 - phase * 0.15, 0);
-    }
-    function resize() {
-      if (!node.clientWidth || !node.clientHeight) return;
-      const w = node.clientWidth,
-        h = node.clientHeight;
-      renderer.setSize(w, h);
-      camera.aspect = w / h;
-      baseZ = (compact ? 9.8 : w < 430 ? 10.7 : 9.4) / zoom;
-      placeCamera();
-      camera.updateProjectionMatrix();
-      requestRender();
-    }
-    const observer = new ResizeObserver(resize);
-    observer.observe(node);
-    resize();
+    resize.observe(node);
     const visibility = new IntersectionObserver(
-      (entries) => {
-        seen = entries[0].isIntersecting;
-        requestRender();
+      ([entry]) => {
+        visible = entry.isIntersecting;
+        sync();
       },
       { rootMargin: "100px" },
     );
     visibility.observe(node);
-    function render(time: number) {
-      frame = 0;
-      if (!seen || document.hidden || lost) return;
-      const dt = Math.min((time - prev) / 1000, 0.04) || 0.016;
-      prev = time;
-      const k = reduced.matches || instant ? 1 : 1 - Math.exp(-dt * 11);
-      instant = false;
-      desiredColor.set(target.current.color);
-      rubber.color.lerp(desiredColor, k);
-      phase = THREE.MathUtils.lerp(phase, target.current.exploded ? 1 : 0, k);
-      body.position.z = -phase * 0.55;
-      front.position.z = phase * 1.7;
-      drivers.position.z = phase * 0.45;
-      drivers.visible = phase > 0.025;
-      placeCamera();
-      root.rotation.y = THREE.MathUtils.lerp(
-        root.rotation.y,
-        yaw + target.current.rotation,
-        k,
-      );
-      root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, pitch, k);
-      // Straight points the marker forward; full swing turns it 270° clockwise.
-      const dialTarget = -((target.current.swing - 50) / 25) * Math.PI * 1.5;
-      dialGroup.rotation.y = THREE.MathUtils.lerp(
-        dialGroup.rotation.y,
-        dialTarget,
-        k,
-      );
-      // Recover from a kick in about 120 ms; the LED fades a little slower.
-      thump *= Math.exp(-dt * 25);
-      glow *= Math.exp(-dt * 12);
-      if (thump < 0.001) thump = 0;
-      if (glow < 0.001) glow = 0;
-      // About 4% shorter at the hit (6-9 px at studio size), a little wider, feet on the floor.
-      const squashY = 1 - 0.04 * thump;
-      const squashXZ = 1 + 0.016 * thump;
-      root.scale.set(squashXZ, squashY, squashXZ);
-      root.position.y = -1.4 * (1 - squashY);
-      ledMaterial.color.copy(ledIdle).lerp(ledLive, Math.min(1, glow * 1.4));
-      led.scale.setScalar(1 + (reduced.matches ? 0 : 1.2 * glow));
-      renderer.render(scene, camera);
-      const settling =
-        Math.abs(phase - (target.current.exploded ? 1 : 0)) > 0.0001 ||
-        Math.abs(root.rotation.y - yaw - target.current.rotation) > 0.0001 ||
-        Math.abs(root.rotation.x - pitch) > 0.0001 ||
-        Math.abs(dialGroup.rotation.y - dialTarget) > 0.0001 ||
-        thump > 0 ||
-        glow > 0 ||
-        Math.abs(rubber.color.r - desiredColor.r) +
-          Math.abs(rubber.color.g - desiredColor.g) +
-          Math.abs(rubber.color.b - desiredColor.b) >
-          0.0001;
-      if (settling) requestRender();
-    }
-    function requestRender() {
-      if (seen && !document.hidden && !lost && !frame)
-        frame = requestAnimationFrame(render);
-    }
-    wake.current = requestRender;
-    if (pulse)
-      pulse.current = {
-        hit(kick) {
-          // Reduced motion keeps the LED (colour) and drops the squash (movement).
-          if (kick && !reduced.matches) thump = 1;
-          glow = 1;
-          requestRender();
+    function sync() {
+      send({
+        type: "state",
+        state: {
+          visible: visible && !document.hidden,
+          reduced: reduced.matches,
         },
-      };
-    function pointerDown(e: PointerEvent) {
-      if (pointer !== null || !e.isPrimary || e.button !== 0) return;
-      pointer = e.pointerId;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      node.setPointerCapture(e.pointerId);
+      });
     }
-    function pointerMove(e: PointerEvent) {
-      if (e.pointerId !== pointer) return;
-      yaw += (e.clientX - lastX) * 0.008;
-      pitch = THREE.MathUtils.clamp(
-        pitch + (e.clientY - lastY) * 0.003,
-        -0.3,
-        0.45,
+    function down(event: PointerEvent) {
+      if (drag || !event.isPrimary || event.button !== 0) return;
+      const isDial = Boolean(
+        values.current.onSwingChange &&
+        dial.current?.contains(event.target as Node),
       );
-      lastX = e.clientX;
-      lastY = e.clientY;
-      requestRender();
+      drag = {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+        lastX: event.clientX,
+        lastY: event.clientY,
+        swing: values.current.swing,
+        dial: isDial,
+      };
+      node.setPointerCapture(event.pointerId);
+      if (isDial) event.preventDefault();
     }
-    function pointerUp(e: PointerEvent) {
-      if (e.pointerId !== pointer) return;
-      pointer = null;
-      if (node.hasPointerCapture(e.pointerId))
-        node.releasePointerCapture(e.pointerId);
+    function move(event: PointerEvent) {
+      if (!drag || drag.id !== event.pointerId) return;
+      if (drag.dial) {
+        const next = swingFromDrag(
+          drag.swing,
+          event.clientX - drag.x,
+          event.clientY - drag.y,
+        );
+        if (next !== values.current.swing) values.current.onSwingChange?.(next);
+      } else
+        send({
+          type: "rotate",
+          dx: (event.clientX - drag.lastX) * 0.008,
+          dy: (event.clientY - drag.lastY) * 0.003,
+        });
+      drag.lastX = event.clientX;
+      drag.lastY = event.clientY;
     }
-    function keyDown(e: KeyboardEvent) {
-      if (
-        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home"].includes(
-          e.key,
-        )
-      ) {
-        e.preventDefault();
-        if (e.key === "ArrowLeft") yaw -= 0.22;
-        if (e.key === "ArrowRight") yaw += 0.22;
-        if (e.key === "ArrowUp") pitch -= 0.12;
-        if (e.key === "ArrowDown") pitch += 0.12;
-        if (e.key === "Home") {
-          yaw = -0.44;
-          pitch = 0.05;
-        }
-        pitch = THREE.MathUtils.clamp(pitch, -0.3, 0.45);
-        instant = true;
-        requestRender();
+    function up(event: PointerEvent) {
+      if (drag?.id !== event.pointerId) return;
+      drag = null;
+      if (node.hasPointerCapture(event.pointerId))
+        node.releasePointerCapture(event.pointerId);
+    }
+    function keyboard(event: KeyboardEvent) {
+      const directions: Record<string, [number, number]> = {
+        ArrowLeft: [-0.22, 0],
+        ArrowRight: [0.22, 0],
+        ArrowUp: [0, -0.12],
+        ArrowDown: [0, 0.12],
+      };
+      if (event.key === "Home") {
+        event.preventDefault();
+        send({ type: "home" });
+      } else if (directions[event.key]) {
+        event.preventDefault();
+        const [dx, dy] = directions[event.key];
+        send({ type: "rotate", dx, dy, instant: true });
       }
     }
-    function visible() {
-      requestRender();
-    }
-    node.addEventListener("pointerdown", pointerDown);
-    node.addEventListener("pointermove", pointerMove);
-    node.addEventListener("pointerup", pointerUp);
-    node.addEventListener("pointercancel", pointerUp);
-    node.addEventListener("lostpointercapture", pointerUp);
-    node.addEventListener("keydown", keyDown);
-    document.addEventListener("visibilitychange", visible);
-    reduced.addEventListener("change", requestRender);
-    // Warm up the hidden drivers (including their shadow pass) so the first
-    // "Look inside" does not stall. The next render replaces this frame.
-    drivers.visible = true;
-    renderer.render(scene, camera);
-    drivers.visible = false;
-    requestRender();
-    const contextLost = (e: Event) => {
-      e.preventDefault();
-      lost = true;
-      cancelAnimationFrame(frame);
-      frame = 0;
-      setFailed(true);
-    };
-    renderer.domElement.addEventListener("webglcontextlost", contextLost);
+    node.addEventListener("pointerdown", down);
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", up);
+    node.addEventListener("pointercancel", up);
+    node.addEventListener("lostpointercapture", up);
+    node.addEventListener("keydown", keyboard);
+    document.addEventListener("visibilitychange", sync);
+    reduced.addEventListener("change", sync);
+    void initialize(true);
     return () => {
-      disposed = true;
-      cancelAnimationFrame(frame);
-      wake.current = () => {};
+      cancelled = true;
+      send({ type: "dispose" });
+      controller.current = null;
+      canvas?.remove();
       if (pulse) pulse.current = null;
-      observer.disconnect();
+      node.removeEventListener("speakersnapshot", snapshot);
+      resize.disconnect();
       visibility.disconnect();
-      document.removeEventListener("visibilitychange", visible);
-      reduced.removeEventListener("change", requestRender);
-      node.removeEventListener("pointerdown", pointerDown);
-      node.removeEventListener("pointermove", pointerMove);
-      node.removeEventListener("pointerup", pointerUp);
-      node.removeEventListener("pointercancel", pointerUp);
-      node.removeEventListener("lostpointercapture", pointerUp);
-      node.removeEventListener("keydown", keyDown);
-      renderer.domElement.removeEventListener("webglcontextlost", contextLost);
-      scene.traverse((o) => {
-        if (o instanceof THREE.Mesh) {
-          o.geometry.dispose();
-          const mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach((m) => m.dispose());
-        }
-      });
-      weave.dispose();
-      brandTex.dispose();
-      environment.dispose();
-      key.shadow.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
+      node.removeEventListener("pointerdown", down);
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", up);
+      node.removeEventListener("pointercancel", up);
+      node.removeEventListener("lostpointercapture", up);
+      node.removeEventListener("keydown", keyboard);
+      document.removeEventListener("visibilitychange", sync);
+      reduced.removeEventListener("change", sync);
     };
-  }, [compact, failed, near, pulse, zoom]);
-  return failed ? (
-    <div className="canvas-fallback">
-      <img src="/images/listening-room.webp" alt="OFFBEAT in hot orange" />
-      <span>3D is unavailable on this device. Explore the product below.</span>
-    </div>
-  ) : (
+  }, [compact, zoom, near, failed, pulse]);
+  if (failed)
+    return (
+      <div className="canvas-fallback">
+        <img src="/images/listening-room.webp" alt="OFFBEAT in hot orange" />
+        <span>
+          3D is unavailable on this device. Explore the product below.
+        </span>
+      </div>
+    );
+  return (
     <div
       ref={host}
       className="speaker-canvas"
       tabIndex={0}
       role="group"
-      aria-label="Interactive OFFBEAT speaker. Drag to rotate, or use the arrow keys. Press Home to reset."
-    />
+      aria-label={
+        onSwingChange
+          ? "Interactive OFFBEAT speaker. Drag the top dial to adjust swing; use the Swing slider below for keyboard control. Drag the body or use arrow keys to rotate. Home resets."
+          : "Interactive OFFBEAT speaker. Drag to rotate, or use the arrow keys. Press Home to reset."
+      }
+    >
+      <SpeakerPoster
+        color={color}
+        variant={
+          compact
+            ? zoom > 1
+              ? "studio"
+              : "compact"
+            : exploded
+              ? "design"
+              : "hero"
+        }
+      />
+      {onSwingChange && (
+        <div
+          ref={dial}
+          className="speaker-dial-hit"
+          data-dial-hit
+          aria-hidden="true"
+          title="Drag up or right to add swing"
+        />
+      )}
+    </div>
   );
 }

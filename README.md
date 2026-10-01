@@ -37,6 +37,8 @@ The product photograph was generated specifically for this concept. The speaker 
 
 ## Verification
 
+For the current 3D implementation stage, see `3D-REVIEW.md`. It separates the supplied baseline from new results, documents the browser restrictions, and lists the production QA commands. The new instruments are `scripts/qa/longtasks.mjs` (load-time long frames), `scripts/qa/strip.mjs` (rendered step LEDs against the sequencer), and `scripts/qa/review.mjs` (swing/dial recording). `scripts/qa/posters.mjs` captures exact-render poster assets; those assets have not yet been generated. The brief requires a review checkpoint after item 2.
+
 Production static export and TypeScript checks passed in the creation environment. `npm test` verifies all 32 shared pad positions, malformed link handling, PCM WAV structure and clipping, and mocked Web Audio start/stop/restart/disposal. Live OfflineAudioContext rendering, PNG downloads, and audible loop seams still need browser testing. Local server startup was blocked (EPERM on listening sockets), and the browser denied local-file URLs, so browser visual QA and live audio QA could not be completed. Review at desktop and mobile widths before presenting the work as production-tested.
 
 Publication was attempted through the Sites source workflow, but this session could not resolve the hosting repository domain. The hosting manifest retains the registered private Site identity for a later retry. No version is live.

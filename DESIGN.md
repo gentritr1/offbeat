@@ -16,6 +16,12 @@ Swing is the brand idea made literal: the speaker's knurled dial pushes every of
 
 The speaker plays along in the studio. Each step reaches it imperatively (never through React state): a kick squashes the body 4% with the feet planted and recovers in about 120ms, any note flashes the LED vermilion, and the dial turns with swing. Motion is specified in pixels at render size, not as constants: about 6-9px on a 218px speaker.
 
+The first 3D implementation stage adds eight recessed step lights: chartreuse for a programmed step, vermilion for the playhead, including silent steps. The three keys follow kick, snare, and hi-hat/bass with 90ms press and 160ms release envelopes. Scheduled audio and hardware receive the same captured track mask. Pattern changes reach the renderer only on edits; beat callbacks do not update React state.
+
+The physical dial shares the studio's swing state and six-pixel-per-percent gesture with the accessible 2D slider. Its 48px pointer target follows the projected dial centre, captures the primary pointer, and ignores secondary pointers. The model turns one degree per percent with an interruptible spring capped at 120ms. Keyboard input and reduced motion apply immediately. Rendered travel, target size, and timing still require the browser evidence listed in `3D-REVIEW.md`.
+
+Scene construction and drawing run in one OffscreenCanvas worker where supported, with the same renderer available on the main thread as fallback. Knurling and step lights use instancing, fixed enclosure meshes are merged by material, and geometry, materials and the PMREM source are reference-counted across canvases. A soft contact texture replaces the real-time shadow. The first-frame opacity transition is 180ms; exact-render poster generation is prepared but remains incomplete while browser capture is blocked.
+
 The logo is a level meter whose third (vermilion) bar lands late: time runs left to right, so it sits off the grid. While audio plays, the bars pulse at the real tempo (--beat) with the late bar 80ms behind.
 
 Desktop asymmetric hero with a borderless 3D canvas; mobile vertical composition. Physical rounded speaker, 12px interface panels, pill controls. Semantic layers: content 0, header 20, dialogs 40, feedback 50.

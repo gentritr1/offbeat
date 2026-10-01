@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { useWebTool, stringArgument } from "@/lib/offbeat/web-tools";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { SpeakerPoster } from "./speaker-poster";
 import type { SpeakerPulse } from "./speaker";
 import { finishes, readPreference } from "@/lib/offbeat/finishes";
 import { RecordPressing } from "./record-pressing";
@@ -26,7 +27,7 @@ import {
 } from "@/lib/offbeat/audio";
 const Speaker = dynamic(() => import("./speaker"), {
   ssr: false,
-  loading: () => <div className="canvas-loading" role="status" />,
+  loading: () => <SpeakerPoster variant="studio" />,
 });
 function Visualizer({
   engine,
@@ -139,7 +140,8 @@ export function SoundStudio() {
   const generation = useRef(0);
   useEffect(() => {
     const saved = Number(readPreference("offbeat-finish"));
-    if (Number.isInteger(saved) && finishes[saved]) setFinish(finishes[saved].color);
+    if (Number.isInteger(saved) && finishes[saved])
+      setFinish(finishes[saved].color);
   }, []);
   useEffect(() => {
     const value = new URL(location.href).searchParams.get("groove");
@@ -201,12 +203,12 @@ export function SoundStudio() {
   // The playhead is written straight to the DOM so playback does not re-render the studio.
   function showStep(step: number) {
     sequencer.current?.setAttribute("data-step", String(step));
+    if (step < 0) speaker.current?.stop();
   }
   // Each step also drives the 3D speaker: a kick squashes it, any note lights the LED.
-  function playStep(step: number) {
+  function playStep(step: number, tracks: boolean[]) {
     showStep(step);
-    const current = engine.current?.pattern;
-    if (current?.some((row) => row[step])) speaker.current?.hit(current[0][step]);
+    speaker.current?.hit({ step, tracks });
   }
   function getEngine() {
     if (!engine.current) {
@@ -344,6 +346,11 @@ export function SoundStudio() {
               compact
               zoom={1.3}
               swing={swing}
+              pattern={pattern}
+              onSwingChange={(value) => {
+                setSwing(value);
+                setCustom(true);
+              }}
               pulse={speaker}
             />
           </div>
@@ -485,7 +492,9 @@ export function SoundStudio() {
                   max="75"
                   value={volume}
                   style={
-                    { "--pct": `${(volume / 75) * 100}%` } as React.CSSProperties
+                    {
+                      "--pct": `${(volume / 75) * 100}%`,
+                    } as React.CSSProperties
                   }
                   onChange={(e) => setVolume(Number(e.target.value))}
                 />

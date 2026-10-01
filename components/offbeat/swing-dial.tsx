@@ -1,6 +1,7 @@
 "use client";
 import { useRef } from "react";
 import { SWING_MAX, SWING_MIN } from "@/lib/offbeat/audio";
+import { swingFromDrag } from "@/lib/offbeat/three/motion";
 
 const SWEEP = 270;
 const ticks = [50, 55, 60, 65, 70, 75];
@@ -19,9 +20,12 @@ export function SwingDial({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const drag = useRef<{ id: number; x: number; y: number; from: number } | null>(
-    null,
-  );
+  const drag = useRef<{
+    id: number;
+    x: number;
+    y: number;
+    from: number;
+  } | null>(null);
   function set(next: number) {
     const clamped = Math.min(SWING_MAX, Math.max(SWING_MIN, Math.round(next)));
     if (clamped !== value) onChange(clamped);
@@ -57,7 +61,11 @@ export function SwingDial({
     if (!start || start.id !== event.pointerId) return;
     // Six pixels per percent, up or right adds swing.
     set(
-      start.from + (event.clientX - start.x + start.y - event.clientY) / 6,
+      swingFromDrag(
+        start.from,
+        event.clientX - start.x,
+        event.clientY - start.y,
+      ),
     );
   }
   function pointerUp(event: React.PointerEvent) {

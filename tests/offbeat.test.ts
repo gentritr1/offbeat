@@ -189,14 +189,20 @@ test("links shared before swing existed still decode, straight", () => {
 test("swing round-trips through links and rejects anything out of range", () => {
   const pattern = toPattern(presets[1].pattern);
   for (let swing = 50; swing <= 75; swing++)
-    assert.deepEqual(decodeGroove(encodeGroove({ pattern, tempo: 78, swing })), {
-      pattern,
-      tempo: 78,
-      swing,
-    });
+    assert.deepEqual(
+      decodeGroove(encodeGroove({ pattern, tempo: 78, swing })),
+      {
+        pattern,
+        tempo: 78,
+        swing,
+      },
+    );
   // Straight grooves keep the original format so older links stay identical.
   assert.match(encodeGroove({ pattern, tempo: 78, swing: 50 }), /^1\./);
-  assert.equal(encodeGroove({ pattern, tempo: 78, swing: 62 }), "2.78.8422aa89.62");
+  assert.equal(
+    encodeGroove({ pattern, tempo: 78, swing: 62 }),
+    "2.78.8422aa89.62",
+  );
   for (const value of [
     "2.112.8822bb94",
     "2.112.8822bb94.49",
@@ -253,7 +259,10 @@ test("live playback schedules voices on the swung grid", async () => {
   engine.playVoice = (_track, time = 0) => {
     times.push(time);
   };
-  engine.pattern = [Array(8).fill(true), ...Array.from({ length: 3 }, () => Array(8).fill(false))];
+  engine.pattern = [
+    Array(8).fill(true),
+    ...Array.from({ length: 3 }, () => Array(8).fill(false)),
+  ];
   engine.tempo = 120;
   engine.swing = 75;
   engine.next = 0;
@@ -265,4 +274,95 @@ test("live playback schedules voices on the swung grid", async () => {
     Array.from({ length: 8 }, (_, s) => s * step + (s % 2 ? step / 2 : 0)),
   );
   await engine.dispose();
+});
+
+test("shared v2 link drives exactly the same hardware strip as all preset patterns", async () => {
+  const { activeSteps } = await import("../lib/offbeat/three/motion.ts");
+  for (const preset of presets) {
+    const pattern = toPattern(preset.pattern);
+    assert.deepEqual(
+      activeSteps(pattern),
+      Array.from({ length: 8 }, (_, step) => pattern.some((row) => row[step])),
+    );
+  }
+  const shared = decodeGroove("2.120.c0000000.75")!;
+  assert.equal(shared.swing, 75);
+  assert.deepEqual(activeSteps(shared.pattern), [
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
+});
+
+test("both swing inputs use +10 per 60px, with rounding and limits", async () => {
+  const { swingFromDrag } = await import("../lib/offbeat/three/motion.ts");
+  assert.equal(swingFromDrag(50, 60, 0), 60);
+  assert.equal(swingFromDrag(50, 0, -60), 60);
+  assert.equal(swingFromDrag(60, -60, 0), 50);
+  assert.equal(swingFromDrag(70, 60, 0), 75);
+  assert.equal(swingFromDrag(50, -600, 0), 50);
+  assert.equal(swingFromDrag(50, 3, 0), 51);
+});
+
+test("dial detent has a small overshoot and settles within 120ms at 60 and 120Hz", async () => {
+  const { spring, keyDepth } = await import("../lib/offbeat/three/motion.ts");
+  for (const hz of [60, 120]) {
+    let position = 0,
+      velocity = 0,
+      peak = 0;
+    const target = Math.PI / 180;
+    for (let time = 0; time < 0.12 - 1e-10;) {
+      const dt = Math.min(1 / hz, 0.12 - time);
+      ({ position, velocity } = spring(position, velocity, target, dt));
+      peak = Math.max(peak, position);
+      time += dt;
+    }
+    assert(peak > target && peak < target * 1.1);
+    assert(Math.abs(position - target) < target * 0.001);
+    const reversed = spring(position, velocity, 0, 1 / hz);
+    assert(
+      Number.isFinite(reversed.position) && Number.isFinite(reversed.velocity),
+    );
+  }
+  assert.equal(keyDepth(0), 0);
+  assert.equal(keyDepth(90), 1);
+  assert.equal(keyDepth(250), 0);
+  assert(keyDepth(45) > 0 && keyDepth(45) < 1);
+});
+
+test("a queued beat carries the same tracks as its scheduled audio even after an edit", () => {
+  Object.assign(globalThis, { AudioContext: FakeContext });
+  const engine = new BeatEngine();
+  const queued: (() => void)[] = [];
+  const original = globalThis.setTimeout;
+  globalThis.setTimeout = ((fn: () => void) => {
+    queued.push(fn);
+    return 0;
+  }) as unknown as typeof setTimeout;
+  let received: { step: number; tracks: boolean[] } | undefined;
+  engine.onStep = (step, tracks) => {
+    received = { step, tracks };
+  };
+  try {
+    engine.pattern = [
+      Array(8).fill(true),
+      ...Array.from({ length: 3 }, () => Array(8).fill(false)),
+    ];
+    engine.next = 0;
+    engine.schedule();
+    engine.pattern = Array.from({ length: 4 }, () => Array(8).fill(false));
+    queued[0]();
+    assert.deepEqual(received, {
+      step: 0,
+      tracks: [true, false, false, false],
+    });
+  } finally {
+    globalThis.setTimeout = original;
+    void engine.dispose();
+  }
 });

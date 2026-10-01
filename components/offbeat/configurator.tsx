@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useWebTool, stringArgument } from "@/lib/offbeat/web-tools";
 import dynamic from "next/dynamic";
+import { SpeakerPoster } from "./speaker-poster";
 import {
   CheckIcon,
   CopyIcon,
@@ -10,7 +11,10 @@ import {
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
 import { finishes, savePreference } from "@/lib/offbeat/finishes";
-const Speaker = dynamic(() => import("./speaker"), { ssr: false });
+const Speaker = dynamic(() => import("./speaker"), {
+  ssr: false,
+  loading: () => <SpeakerPoster variant="compact" />,
+});
 export function Configurator({
   finish,
   onFinishChange,
@@ -136,9 +140,7 @@ export function Configurator({
             <CopyIcon size={21} />
           </button>
         </div>
-        <p className="device-note">
-          Saved in this browser only.
-        </p>
+        <p className="device-note">Saved in this browser only.</p>
         {shareLink && (
           <div className="share-fallback">
             <label htmlFor="color-link">Your color link</label>

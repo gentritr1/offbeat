@@ -442,7 +442,11 @@ main {
 /* The colour field behind the speaker is derived from the finish, per theme. */
 .product-stage,
 .config-stage {
-  --finish-field: color-mix(in oklab, var(--finish, var(--accent)) 16%, var(--bg));
+  --finish-field: color-mix(
+    in oklab,
+    var(--finish, var(--accent)) 16%,
+    var(--bg)
+  );
 }
 :root[data-theme="dark"] .product-stage,
 :root[data-theme="dark"] .config-stage {
@@ -1789,11 +1793,7 @@ details[open] .faq-plus:after {
   inset: 9px;
   border-radius: 50%;
   background:
-    radial-gradient(
-      circle,
-      oklch(0.93 0.004 110) 0 54%,
-      transparent 55%
-    ),
+    radial-gradient(circle, oklch(0.93 0.004 110) 0 54%, transparent 55%),
     repeating-conic-gradient(
       oklch(0.66 0.006 110) 0 5deg,
       oklch(0.86 0.004 110) 5deg 10deg
@@ -2681,4 +2681,49 @@ a:focus-visible {
   .pressing-actions {
     grid-template-columns: 1fr;
   }
+}
+
+/* The poster occupies the actual WebGL stage until the first completed frame. */
+.speaker-canvas > canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 180ms var(--ease-out);
+}
+.speaker-poster {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  transition: opacity 180ms var(--ease-out);
+}
+.speaker-canvas[data-ready="true"] > canvas {
+  opacity: 1;
+}
+.speaker-canvas[data-ready="true"] .speaker-poster {
+  opacity: 0;
+}
+.speaker-dial-hit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  touch-action: none;
+  cursor: ns-resize;
+  visibility: hidden;
+}
+.speaker-canvas[data-ready="true"] .speaker-dial-hit {
+  visibility: visible;
+}
+@media (prefers-reduced-motion: reduce) {
+  .speaker-canvas > canvas,
+  .speaker-poster {
+    transition: none;
+  }
+}
+.speaker-poster > img {
+  height: 100%;
+  object-fit: contain;
 }

@@ -2,17 +2,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { SpeakerPoster } from "./speaker-poster";
 import { CubeIcon, HandGrabbingIcon } from "@phosphor-icons/react";
 import { Configurator } from "./configurator";
 import { finishes, readPreference } from "@/lib/offbeat/finishes";
 const Speaker = dynamic(() => import("./speaker"), {
   ssr: false,
-  loading: () => (
-    <div className="canvas-loading" role="status">
-      Setting the stage
-      <span className="loading-line" />
-    </div>
-  ),
+  loading: () => <SpeakerPoster variant="hero" />,
 });
 
 export function Showcase() {
@@ -66,9 +62,7 @@ export function Showcase() {
         </div>
         <div
           className="product-stage"
-          style={
-            { "--finish": finishes[finish].color } as React.CSSProperties
-          }
+          style={{ "--finish": finishes[finish].color } as React.CSSProperties}
         >
           <div className="product-orbit" />
           <Speaker color={finishes[finish].color} exploded={exploded} />
@@ -141,8 +135,8 @@ export function Showcase() {
           That is the whole interface.
         </h2>
         <p>
-          Tap a key to set a step. Turn the dial to drag the off-beats late.
-          The loop keeps playing while your phone stays in your pocket.
+          Tap a key to set a step. Turn the dial to drag the off-beats late. The
+          loop keeps playing while your phone stays in your pocket.
         </p>
         <Link href="/studio/" className="button">
           Try the drum machine

@@ -146,7 +146,7 @@ export class BeatEngine {
   tempo = 112;
   swing = SWING_MIN;
   pattern: Pattern = toPattern(presets[0].pattern);
-  onStep: (step: number) => void = () => {};
+  onStep: (step: number, tracks: boolean[]) => void = () => {};
   callbacks: ReturnType<typeof setTimeout>[] = [];
   constructor() {
     this.ctx = new AudioContext();
@@ -183,12 +183,15 @@ export class BeatEngine {
     while (this.next < this.ctx.currentTime + 0.1) {
       const s = this.step;
       const time =
-        this.next + stepTime(s, this.tempo, this.swing) - stepTime(s, this.tempo);
-      this.pattern.forEach((row, t) => {
-        if (row[s]) this.playVoice(t, time, s);
+        this.next +
+        stepTime(s, this.tempo, this.swing) -
+        stepTime(s, this.tempo);
+      const stepTracks = this.pattern.map((row) => row[s]);
+      stepTracks.forEach((on, t) => {
+        if (on) this.playVoice(t, time, s);
       });
       const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
-      const cb = setTimeout(() => this.onStep(s), delay);
+      const cb = setTimeout(() => this.onStep(s, stepTracks), delay);
       this.callbacks.push(cb);
       if (this.callbacks.length > 64) this.callbacks.splice(0, 32);
       this.next += 30 / this.tempo;
