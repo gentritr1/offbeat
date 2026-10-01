@@ -141,8 +141,8 @@ export function Showcase() {
           That is the whole interface.
         </h2>
         <p>
-          Tap a key to set a step. Turn the dial to set the level. The loop
-          keeps playing while your phone stays in your pocket.
+          Tap a key to set a step. Turn the dial to drag the off-beats late.
+          The loop keeps playing while your phone stays in your pocket.
         </p>
         <Link href="/studio/" className="button">
           Try the drum machine

@@ -12,11 +12,13 @@ import { cleanTitle, encodeGroove } from "@/lib/offbeat/session";
 export function RecordPressing({
   pattern,
   tempo,
+  swing,
   playing,
   defaultTitle,
 }: {
   pattern: Pattern;
   tempo: number;
+  swing: number;
   playing: boolean;
   defaultTitle: string;
 }) {
@@ -54,7 +56,7 @@ export function RecordPressing({
     setLink("");
     setNotice("");
     setError("");
-  }, [pattern, tempo, title]);
+  }, [pattern, tempo, swing, title]);
   async function download(kind: "loop" | "sleeve") {
     if (working.current) return;
     working.current = true;
@@ -66,8 +68,8 @@ export function RecordPressing({
         await import("@/lib/offbeat/pressing");
       const blob =
         kind === "loop"
-          ? await pressLoop(pattern, tempo)
-          : await pressSleeve(pattern, tempo, recordTitle);
+          ? await pressLoop(pattern, tempo, swing)
+          : await pressSleeve(pattern, tempo, swing, recordTitle);
       downloadBlob(
         blob,
         `offbeat-${tempo}bpm.${kind === "loop" ? "wav" : "png"}`,
@@ -91,14 +93,14 @@ export function RecordPressing({
   async function share() {
     const url = new URL(location.href);
     url.search = "";
-    url.searchParams.set("groove", encodeGroove({ pattern, tempo }));
+    url.searchParams.set("groove", encodeGroove({ pattern, tempo, swing }));
     url.searchParams.set("title", recordTitle);
     url.hash = "";
     setError("");
     try {
       await navigator.clipboard.writeText(url.toString());
       setLink("");
-      setNotice("Groove link copied. Same beat, same tempo, ready to play.");
+      setNotice("Groove link copied. Same beat, tempo and swing, ready to play.");
     } catch {
       setLink(url.toString());
       setNotice("Your groove link is ready to copy below.");
@@ -114,7 +116,10 @@ export function RecordPressing({
             <span>BPM</span>
           </div>
         </div>
-        <div className="sleeve-art">
+        <div
+          className="sleeve-art"
+          style={{ "--swing": swing } as React.CSSProperties}
+        >
           <div className="sleeve-brand">
             <b>offbeat</b>
             <span>Made by you</span>
@@ -128,7 +133,10 @@ export function RecordPressing({
           </div>
           <div className="sleeve-title">
             <strong>{recordTitle}</strong>
-            <span>{tempo} BPM · Four bars · Your first pressing</span>
+            <span>
+              {tempo} BPM · {swing === 50 ? "Straight" : `Swing ${swing}%`} ·
+              Four bars
+            </span>
           </div>
         </div>
       </div>

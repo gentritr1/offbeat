@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { useWebTool, stringArgument } from "@/lib/offbeat/web-tools";
 import Link from "next/link";
 import { RecordPressing } from "./record-pressing";
+import { SwingDial } from "./swing-dial";
 import { decodeGroove } from "@/lib/offbeat/session";
 import {
   PlayIcon,
@@ -114,7 +115,8 @@ export function SoundStudio() {
   const [pattern, setPattern] = useState<Pattern>(
     toPattern(presets[0].pattern),
   );
-  const [tempo, setTempo] = useState(112);
+  const [tempo, setTempo] = useState(presets[0].tempo);
+  const [swing, setSwing] = useState(presets[0].swing);
   const [volume, setVolume] = useState(38);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState("");
@@ -131,6 +133,7 @@ export function SoundStudio() {
     if (shared) {
       setPattern(shared.pattern);
       setTempo(shared.tempo);
+      setSwing(shared.swing);
       setCustom(true);
       setArrival("A groove just for you. Press play to hear it.");
     } else if (value) {
@@ -143,13 +146,14 @@ export function SoundStudio() {
     if (engine.current) {
       engine.current.pattern = pattern;
       engine.current.tempo = tempo;
+      engine.current.swing = swing;
       engine.current.master.gain.setTargetAtTime(
         volume / 100,
         engine.current.ctx.currentTime,
         0.03,
       );
     }
-  }, [pattern, tempo, volume]);
+  }, [pattern, tempo, swing, volume]);
   // Lets the logo meter pulse in time while a groove plays.
   useEffect(() => {
     const root = document.documentElement;
@@ -189,6 +193,7 @@ export function SoundStudio() {
       engine.current = new BeatEngine();
       engine.current.pattern = pattern;
       engine.current.tempo = tempo;
+      engine.current.swing = swing;
       engine.current.master.gain.value = volume / 100;
       engine.current.onStep = showStep;
     }
@@ -230,6 +235,7 @@ export function SoundStudio() {
     setPreset(i);
     setPattern(toPattern(presets[i].pattern));
     setTempo(presets[i].tempo);
+    setSwing(presets[i].swing);
     setCustom(false);
   }
   function flip(t: number, s: number) {
@@ -283,7 +289,11 @@ export function SoundStudio() {
       const index = presets.findIndex((p) => p.name === name);
       if (index < 0) throw new Error("Choose an available preset.");
       flushSync(() => choose(index));
-      return { preset: name, tempo: presets[index].tempo };
+      return {
+        preset: name,
+        tempo: presets[index].tempo,
+        swing: presets[index].swing,
+      };
     },
   });
   return (
@@ -294,7 +304,7 @@ export function SoundStudio() {
         </div>
         <p>
           This is the drum machine inside OFFBEAT, running in your browser. Tap
-          steps, pick a groove, then press it to a record.
+          steps, turn the swing, then press it to a record.
         </p>
       </section>
       {arrival && (
@@ -314,7 +324,10 @@ export function SoundStudio() {
             <h2>{custom ? "Your own thing" : presets[preset].name}</h2>
             <p>
               <span className="readout">{tempo} BPM</span>
-              <span className="studio-divider" /> Made by you.
+              <span className="studio-divider" />
+              <span className="readout">
+                {swing === 50 ? "Straight" : `Swing ${swing}%`}
+              </span>
             </p>
           </div>
           <button
@@ -453,6 +466,13 @@ export function SoundStudio() {
                 <SpeakerHighIcon size={16} />
               </div>
             </div>
+            <SwingDial
+              value={swing}
+              onChange={(value) => {
+                setSwing(value);
+                setCustom(true);
+              }}
+            />
           </div>
           <div className="studio-action">
             <button
@@ -481,6 +501,7 @@ export function SoundStudio() {
       <RecordPressing
         pattern={pattern}
         tempo={tempo}
+        swing={swing}
         playing={playing}
         defaultTitle={custom ? "Your own thing" : presets[preset].name}
       />

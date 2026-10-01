@@ -1,9 +1,22 @@
 export type Pattern = boolean[][];
 export const tracks = ["Kick", "Snare", "Hi-hat", "Bass"];
+/** Swing as on a groovebox: 50 is straight, about 66 is a triplet shuffle, 75 is the limit. */
+export const SWING_MIN = 50;
+export const SWING_MAX = 75;
+/**
+ * Seconds from the start of a bar to `step` (0-7, eighth notes).
+ * Swing delays every off-beat step by (swing - 50) / 50 of a step.
+ */
+export function stepTime(step: number, tempo: number, swing = SWING_MIN) {
+  const stepLength = 30 / tempo;
+  const late = step % 2 ? ((swing - SWING_MIN) / 50) * stepLength : 0;
+  return step * stepLength + late;
+}
 export const presets = [
   {
     name: "Kitchen disco",
     tempo: 112,
+    swing: 54,
     pattern: [
       [1, 0, 0, 0, 1, 0, 0, 0],
       [0, 0, 1, 0, 0, 0, 1, 0],
@@ -14,6 +27,7 @@ export const presets = [
   {
     name: "Sunday slow",
     tempo: 78,
+    swing: 62,
     pattern: [
       [1, 0, 0, 0, 0, 1, 0, 0],
       [0, 0, 1, 0, 0, 0, 1, 0],
@@ -24,6 +38,7 @@ export const presets = [
   {
     name: "Night drive",
     tempo: 126,
+    swing: 50,
     pattern: [
       [1, 0, 1, 0, 1, 0, 1, 0],
       [0, 0, 1, 0, 0, 0, 1, 0],
@@ -129,6 +144,7 @@ export class BeatEngine {
   next = 0;
   step = 0;
   tempo = 112;
+  swing = SWING_MIN;
   pattern: Pattern = toPattern(presets[0].pattern);
   onStep: (step: number) => void = () => {};
   callbacks: ReturnType<typeof setTimeout>[] = [];
@@ -160,20 +176,24 @@ export class BeatEngine {
       throw new Error("Audio is paused. Try pressing Play again.");
     this.step = 0;
     this.next = this.ctx.currentTime + 0.06;
-    this.timer = setInterval(() => {
-      while (this.next < this.ctx.currentTime + 0.1) {
-        const s = this.step;
-        this.pattern.forEach((row, t) => {
-          if (row[s]) this.playVoice(t, this.next, s);
-        });
-        const delay = Math.max(0, (this.next - this.ctx.currentTime) * 1000);
-        const cb = setTimeout(() => this.onStep(s), delay);
-        this.callbacks.push(cb);
-        if (this.callbacks.length > 64) this.callbacks.splice(0, 32);
-        this.next += 60 / this.tempo / 2;
-        this.step = (s + 1) % 8;
-      }
-    }, 25);
+    this.timer = setInterval(() => this.schedule(), 25);
+  }
+  /** Queues every step due in the next 100ms. `next` walks the straight grid; swing offsets each voice. */
+  schedule() {
+    while (this.next < this.ctx.currentTime + 0.1) {
+      const s = this.step;
+      const time =
+        this.next + stepTime(s, this.tempo, this.swing) - stepTime(s, this.tempo);
+      this.pattern.forEach((row, t) => {
+        if (row[s]) this.playVoice(t, time, s);
+      });
+      const delay = Math.max(0, (time - this.ctx.currentTime) * 1000);
+      const cb = setTimeout(() => this.onStep(s), delay);
+      this.callbacks.push(cb);
+      if (this.callbacks.length > 64) this.callbacks.splice(0, 32);
+      this.next += 30 / this.tempo;
+      this.step = (s + 1) % 8;
+    }
   }
   async stop() {
     if (this.timer) clearInterval(this.timer);

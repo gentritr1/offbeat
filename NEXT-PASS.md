@@ -6,7 +6,9 @@ Self-contained. You do not need the conversation that produced it. Read `PRODUCT
 
 - **A (bugs): done by Claude in-session**, verified with `scripts/qa/*`. A5 is improved but not eliminated: one ~33ms frame on the first explode in production. A6, A1, A2, A3, A4, A7, A8, A9 and A10 are verified.
 - **B (identity): done by Claude in-session**, awaiting the owner's screenshot approval (taste calls: typeface, copy, logo).
-- **C (swing + speaker plays along): not started.** Waiting for B approval.
+- A and B are committed on `pass-3-polish` (7c68f30, 16fc743).
+- **C1 (swing): done by Claude in-session**, verified end to end: dial keys and drag, v1/v2 links, live playhead 375/125ms at 75%, exported WAV onset at 0.373s (expected 0.375s). Note: the C1 formula below had a stray x0.5; the shipped standard is late = (swing - 50) / 50 of a step.
+- **C2 (speaker plays along) and C3: not started.**
 
 ## Context
 

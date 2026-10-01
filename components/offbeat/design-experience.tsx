@@ -26,7 +26,7 @@ const anatomy = [
   },
   {
     title: "A dial worth touching.",
-    body: "Knurled aluminum with a firm detent every step. It sets the level, and it is the only control you need while a loop plays.",
+    body: "Knurled aluminum with a firm detent every step. Turn it for level. Hold the first key and turn it to push every off-beat a little late: that is the swing, and the reason for the name.",
     label: "Aluminum volume dial",
   },
   {

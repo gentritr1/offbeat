@@ -12,6 +12,8 @@ Colour has a job. Chartreuse = on / touchable / yours (active pads, chosen key, 
 
 Controls are hardware. Buttons are transport keys that travel (3px edge, 90ms down, 160ms release); `.button-go` is the chartreuse key; `.button-outline` is the flush key. Preset and view choices are key banks: adjacent keys in one housing, the chosen key sits pressed with its LED lit. Range inputs are faders with a fader cap, tick marks and a chartreuse fill. The big play key latches down while playing. Pads travel 2px.
 
+Swing is the brand idea made literal: the speaker's knurled dial pushes every off-beat step late by (swing - 50) / 50 of a step (50 = straight, ~66 = triplet shuffle, 75 = limit). One timing function (`stepTime`) drives live playback, the playhead, the WAV export and the sleeve art, where off-beat dots visibly sit late. The dial is a `role="slider"` with arrow, PageUp/PageDown, Home/End keys and drag; it turns immediately (no easing) because it is direct manipulation. Straight grooves keep the v1 link format; swung grooves use v2.
+
 The logo is a level meter whose third (vermilion) bar lands late: time runs left to right, so it sits off the grid. While audio plays, the bars pulse at the real tempo (--beat) with the late bar 80ms behind.
 
 Desktop asymmetric hero with a borderless 3D canvas; mobile vertical composition. Physical rounded speaker, 12px interface panels, pill controls. Semantic layers: content 0, header 20, dialogs 40, feedback 50.

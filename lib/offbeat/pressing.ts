@@ -1,9 +1,27 @@
-import { createNoise, scheduleVoice, type Pattern } from "./audio";
-import { encodeWav } from "./wav";
+import { createNoise, scheduleVoice, stepTime, type Pattern } from "./audio.ts";
+import { encodeWav } from "./wav.ts";
+
+/** One lead-in bar plus the four exported bars, with the same swing timing as live playback. */
+export function loopEvents(pattern: Pattern, tempo: number, swing: number) {
+  const barSeconds = 240 / tempo;
+  const events: { track: number; step: number; time: number }[] = [];
+  for (let bar = 0; bar < 5; bar++)
+    for (let step = 0; step < 8; step++)
+      pattern.forEach((row, track) => {
+        if (row[step])
+          events.push({
+            track,
+            step,
+            time: bar * barSeconds + stepTime(step, tempo, swing),
+          });
+      });
+  return events;
+}
 
 export async function pressLoop(
   pattern: Pattern,
   tempo: number,
+  swing: number,
 ): Promise<Blob> {
   const sampleRate = 44100;
   const barSeconds = 240 / tempo;
@@ -18,22 +36,8 @@ export async function pressLoop(
   master.connect(context.destination);
   const noise = createNoise(context);
   const active = new Set<AudioScheduledSourceNode>();
-  for (let bar = 0; bar < 5; bar++) {
-    for (let step = 0; step < 8; step++) {
-      pattern.forEach((row, track) => {
-        if (row[step])
-          scheduleVoice(
-            context,
-            master,
-            noise,
-            active,
-            track,
-            bar * barSeconds + (step * 30) / tempo,
-            step,
-          );
-      });
-    }
-  }
+  for (const { track, step, time } of loopEvents(pattern, tempo, swing))
+    scheduleVoice(context, master, noise, active, track, time, step);
   const rendered = await context.startRendering();
   const start = Math.round(barSeconds * sampleRate);
   const length = Math.round(barSeconds * 4 * sampleRate);
@@ -61,6 +65,7 @@ export function downloadBlob(blob: Blob, filename: string) {
 export async function pressSleeve(
   pattern: Pattern,
   tempo: number,
+  swing: number,
   title: string,
 ): Promise<Blob> {
   const canvas = document.createElement("canvas");
@@ -82,8 +87,9 @@ export async function pressSleeve(
   pattern.forEach((row, track) =>
     row.forEach((on, step) => {
       ctx.beginPath();
+      // Off-beat dots sit late by the swing amount, so the artwork shows the groove.
       ctx.arc(
-        182 + step * 176,
+        182 + step * 176 + (step % 2 ? ((swing - 50) / 50) * 176 : 0),
         440 + track * 176,
         on ? 66 : 13,
         0,
@@ -103,7 +109,11 @@ export async function pressSleeve(
   }
   ctx.fillText(title, 110, 1320);
   ctx.font = `32px ${face}`;
-  ctx.fillText(`${tempo} BPM / FOUR BARS / MADE BY YOU`, 110, 1470);
+  ctx.fillText(
+    `${tempo} BPM / ${swing === 50 ? "STRAIGHT" : `SWING ${swing}%`} / FOUR BARS / MADE BY YOU`,
+    110,
+    1470,
+  );
   return new Promise((resolve, reject) =>
     canvas.toBlob(
       (blob) =>
