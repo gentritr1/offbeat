@@ -164,10 +164,22 @@ export default function Speaker({
     brandCanvas.width = 512;
     brandCanvas.height = 128;
     const bc = brandCanvas.getContext("2d")!;
-    bc.font = "600 76px Helvetica, Arial";
-    bc.fillStyle = "#ededdf";
-    bc.fillText("offbeat", 15, 88);
+    let disposed = false;
+    function drawBrand() {
+      bc.clearRect(0, 0, 512, 128);
+      bc.font = `700 semi-expanded 76px ${getComputedStyle(document.body).fontFamily}`;
+      bc.fillStyle = "#ededdf";
+      bc.fillText("offbeat", 15, 88);
+    }
+    drawBrand();
     const brandTex = new THREE.CanvasTexture(brandCanvas);
+    // Redraw the plate once the brand face has loaded.
+    void document.fonts.ready.then(() => {
+      if (disposed) return;
+      drawBrand();
+      brandTex.needsUpdate = true;
+      wake.current();
+    });
     brandTex.colorSpace = THREE.SRGBColorSpace;
     const brand = new THREE.Mesh(
       new THREE.PlaneGeometry(0.77, 0.193),
@@ -430,6 +442,7 @@ export default function Speaker({
     };
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
     return () => {
+      disposed = true;
       cancelAnimationFrame(frame);
       wake.current = () => {};
       observer.disconnect();

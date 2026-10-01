@@ -156,10 +156,11 @@ export function RecordPressing({
         />
         <div className="pressing-actions" aria-busy={Boolean(busy)}>
           <button
-            className="button"
+            className="button button-go"
             onClick={() => download("loop")}
             disabled={Boolean(busy) || !audible}
           >
+            <span className="led" data-on={busy === "loop"} aria-hidden="true" />
             <ArrowDownIcon size={18} />
             {busy === "loop" ? "Pressing your loop…" : "Download loop"}
           </button>

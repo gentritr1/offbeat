@@ -138,7 +138,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <i />
           </span>
         </Link>
-        <p>Good sound. Your own rhythm.</p>
+        <p>A speaker with a drum machine inside.</p>
         <div>
           <Link href="/design/">Behind the design</Link>
           <Link href="/studio/">Make some noise</Link>

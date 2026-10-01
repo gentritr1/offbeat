@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
+import { Archivo, Martian_Mono } from "next/font/google";
 import { Shell } from "@/components/offbeat/shell";
 import "./globals.css";
+// Self-hosted at build time: no runtime font requests.
+const archivo = Archivo({
+  subsets: ["latin"],
+  axes: ["wdth"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const martian = Martian_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 export const metadata: Metadata = {
   title: {
-    default: "OFFBEAT | Sound with a little soul",
+    default: "OFFBEAT | Plays your songs. Makes its own.",
     template: "%s | OFFBEAT",
   },
   description:
-    "A little speaker with a big personality. Explore OFFBEAT in 3D, find your color, and make some noise.",
+    "A portable speaker concept with an eight-step drum machine inside. Explore it in 3D, pick a finish, and press your own record.",
   icons: { icon: "/favicon.svg" },
 };
 export default function RootLayout({
@@ -16,7 +29,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${archivo.variable} ${martian.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <script
           dangerouslySetInnerHTML={{

@@ -45,22 +45,22 @@ export function Showcase() {
     <>
       <section className="hero">
         <div className="hero-copy">
-          <p className="hero-intro">Meet your new plus-one.</p>
+          <p className="hero-intro">Portable speaker. Pocket drum machine.</p>
           <h1>
-            Small speaker.
+            Plays your songs.
             <br />
-            Big personality.
+            Makes its own.
           </h1>
           <p className="hero-description">
-            For kitchen discos, off-grid weekends, and everything in between.
-            Take your sound a little less seriously.
+            A portable speaker with an eight-step drum machine inside. Three
+            keys, one dial, no app.
           </p>
           <div className="hero-buttons">
             <a href="#make-it-yours" className="button">
               Find your color
             </a>
             <Link href="/studio/" className="text-link">
-              Take it for a spin <span className="mini-record" />
+              Play the drum machine <span className="mini-record" />
             </Link>
           </div>
         </div>
@@ -71,13 +71,10 @@ export function Showcase() {
           }
         >
           <div className="product-orbit" />
-          <span className="product-watermark" aria-hidden="true">
-            ob.
-          </span>
           <Speaker color={finishes[finish].color} exploded={exploded} />
           <div className="scene-bottom">
             <span>
-              <HandGrabbingIcon size={17} /> Drag to discover
+              <HandGrabbingIcon size={17} /> Drag to turn
             </span>
             <button
               className={exploded ? "scene-tool active" : "scene-tool"}
@@ -90,7 +87,7 @@ export function Showcase() {
           </div>
         </div>
         <div className="hero-color-bar">
-          <span>Pick your personality</span>
+          <span>Finish</span>
           <div className="swatches" role="group" aria-label="Speaker finish">
             {finishes.map((f, i) => (
               <button
@@ -110,18 +107,6 @@ export function Showcase() {
           </span>
         </div>
       </section>
-      <div className="feature-strip">
-        <span>A proper little powerhouse.</span>
-        <p>
-          <strong>24 h</strong> of good company
-        </p>
-        <p>
-          <strong>20 W</strong> full-range sound
-        </p>
-        <p>
-          <strong>IP67</strong> adventure ready
-        </p>
-      </div>
       <section className="listening-section">
         <div className="listening-image">
           <img
@@ -134,45 +119,47 @@ export function Showcase() {
         </div>
         <div className="listening-copy">
           <h2>
-            Life sounds
+            Built for the
             <br />
-            better out loud.
+            kitchen table.
           </h2>
           <p>
-            Not every moment needs headphones. Let your favorite record fill the
-            room. Share the good bit. Stay for one more song.
+            Two full-range drivers and a passive radiator, tuned to fill a room
+            rather than win a spec sheet. 24 hours a charge, IP67 when the party
+            moves outside.
           </p>
           <Link href="/design/" className="button button-outline">
-            Get to know OFFBEAT
+            See how it is built
           </Link>
         </div>
       </section>
       <section className="manifesto">
-        <span className="manifesto-note">
-          Less screen time. More good times.
-        </span>
+        <span className="manifesto-note">No app. No account.</span>
         <h2>
-          Your phone can
+          Three keys and a dial.
           <br />
-          stay in your pocket.
+          That is the whole interface.
         </h2>
         <p>
-          A real dial. A satisfying click. Your favorite song.
-          <br />
-          Some things are better kept simple.
+          Tap a key to set a step. Turn the dial to set the level. The loop
+          keeps playing while your phone stays in your pocket.
         </p>
         <Link href="/studio/" className="button">
-          Make a little noise
+          Try the drum machine
         </Link>
       </section>
       <Configurator finish={finish} onFinishChange={changeFinish} />
       <section className="faq-section">
-        <h2>A few good questions.</h2>
+        <h2>Questions.</h2>
         <div className="faq-list">
           {[
             [
+              "Is the drum machine real?",
+              "As real as the rest of OFFBEAT, which is a concept. The sound studio on this site is a working version: eight steps, four sounds, and a record you can download.",
+            ],
+            [
               "Does it need an app?",
-              "No app, no account, no fuss. The concept pairs directly over Bluetooth. Use the top dial for volume and the physical buttons for play and pairing.",
+              "No app and no account. It pairs over Bluetooth, and everything else happens on the three keys and the dial.",
             ],
             [
               "Can I take it outside?",

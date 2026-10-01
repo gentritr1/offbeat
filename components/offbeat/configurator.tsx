@@ -84,15 +84,14 @@ export function Configurator({
   return (
     <section id="make-it-yours" className="configurator">
       <div className="config-copy">
-        <p className="small-label">A sound choice.</p>
         <h2>
-          Find your
+          Pick a
           <br />
-          kind of loud.
+          finish.
         </h2>
         <p className="body-copy">
-          Four finishes. One little character. Choose the one that feels like
-          you.
+          A soft-touch shell in four colors. The grille, dial and keys stay the
+          same.
         </p>
         <div
           className="config-finishes"
@@ -126,7 +125,7 @@ export function Configurator({
                 Color saved
               </>
             ) : (
-              "Keep this color"
+              "Save this finish"
             )}
           </button>
           <button
@@ -138,7 +137,7 @@ export function Configurator({
           </button>
         </div>
         <p className="device-note">
-          A little inspiration, saved on your device.
+          Saved in this browser only.
         </p>
         {shareLink && (
           <div className="share-fallback">

@@ -150,6 +150,18 @@ export function SoundStudio() {
       );
     }
   }, [pattern, tempo, volume]);
+  // Lets the logo meter pulse in time while a groove plays.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.dataset.playing = String(playing);
+    root.style.setProperty("--beat", `${60 / tempo}s`);
+  }, [playing, tempo]);
+  useEffect(
+    () => () => {
+      delete document.documentElement.dataset.playing;
+    },
+    [],
+  );
   useEffect(() => {
     const hide = () => {
       if (document.hidden) {
@@ -278,17 +290,11 @@ export function SoundStudio() {
     <>
       <section className="studio-heading">
         <div>
-          <p className="small-label">A little room to play.</p>
-          <h1>
-            You bring
-            <br />
-            the rhythm.
-          </h1>
+          <h1>You bring the rhythm.</h1>
         </div>
         <p>
-          Start a groove. Tap a few steps.
-          <br />
-          See where the good noise takes you.
+          This is the drum machine inside OFFBEAT, running in your browser. Tap
+          steps, pick a groove, then press it to a record.
         </p>
       </section>
       {arrival && (
@@ -299,19 +305,21 @@ export function SoundStudio() {
       <section className="studio-workspace" aria-label="Interactive beat maker">
         <div className="studio-visual">
           <div className="studio-visual-top">
-            <span>OFFBEAT radio</span>
-            <span>{playing ? "On air" : "Your session"}</span>
+            <span>Step sequencer</span>
+            <span className="readout">8 steps · 4 sounds</span>
           </div>
           <Visualizer engine={engine} playing={playing} />
           <div className="studio-now">
             <span>{playing ? "Now playing" : "On the turntable"}</span>
             <h2>{custom ? "Your own thing" : presets[preset].name}</h2>
             <p>
-              {tempo} BPM <span className="studio-divider" /> Made by you.
+              <span className="readout">{tempo} BPM</span>
+              <span className="studio-divider" /> Made by you.
             </p>
           </div>
           <button
             className="play-circle"
+            data-latched={playing}
             onClick={toggle}
             disabled={starting}
             aria-label={playing ? "Pause beat" : "Play beat"}
@@ -347,6 +355,7 @@ export function SoundStudio() {
                 onClick={() => choose(i)}
                 aria-pressed={i === preset && !custom}
               >
+                <span className="led" aria-hidden="true" />
                 {p.name}
               </button>
             ))}
@@ -361,7 +370,7 @@ export function SoundStudio() {
               <div className="step-labels">
                 <span />
                 {Array.from({ length: 8 }, (_, i) => (
-                  <span data-s={i} key={i}>
+                  <span className="readout" data-s={i} key={i}>
                     {i + 1}
                   </span>
                 ))}
@@ -392,7 +401,7 @@ export function SoundStudio() {
             </div>
           </div>
           <div className="sequencer-caption">
-            <span>Tap a square to make it yours.</span>
+            <span>Tap a step to switch it on.</span>
             <button onClick={shuffle}>
               <ShuffleIcon size={17} />
               Surprise me
@@ -403,17 +412,20 @@ export function SoundStudio() {
               <label htmlFor="tempo">
                 Tempo<span>{tempo} BPM</span>
               </label>
-              <input
-                id="tempo"
-                type="range"
-                min="60"
-                max="160"
-                value={tempo}
-                onChange={(e) => {
-                  setTempo(Number(e.target.value));
-                  setCustom(true);
-                }}
-              />
+              <div className="fader">
+                <input
+                  id="tempo"
+                  type="range"
+                  min="60"
+                  max="160"
+                  value={tempo}
+                  style={{ "--pct": `${tempo - 60}%` } as React.CSSProperties}
+                  onChange={(e) => {
+                    setTempo(Number(e.target.value));
+                    setCustom(true);
+                  }}
+                />
+              </div>
               <div className="range-ends">
                 <span>Slow it down</span>
                 <span>Turn it up</span>
@@ -423,14 +435,19 @@ export function SoundStudio() {
               <label htmlFor="volume">
                 Volume<span>{volume}%</span>
               </label>
-              <input
-                id="volume"
-                type="range"
-                min="0"
-                max="75"
-                value={volume}
-                onChange={(e) => setVolume(Number(e.target.value))}
-              />
+              <div className="fader">
+                <input
+                  id="volume"
+                  type="range"
+                  min="0"
+                  max="75"
+                  value={volume}
+                  style={
+                    { "--pct": `${(volume / 75) * 100}%` } as React.CSSProperties
+                  }
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                />
+              </div>
               <div className="range-ends">
                 <SpeakerLowIcon size={16} />
                 <SpeakerHighIcon size={16} />
@@ -438,7 +455,12 @@ export function SoundStudio() {
             </div>
           </div>
           <div className="studio-action">
-            <button className="button" onClick={toggle} disabled={starting}>
+            <button
+              className="button button-go"
+              onClick={toggle}
+              disabled={starting}
+            >
+              <span className="led" data-on={playing} aria-hidden="true" />
               {playing ? (
                 <PauseIcon size={18} weight="fill" />
               ) : (
@@ -450,7 +472,6 @@ export function SoundStudio() {
                   ? "Pause the groove"
                   : "Play the groove"}
             </button>
-            <span>Eight steps. Endless possibilities.</span>
           </div>
           <p className="audio-error" role="alert">
             {error}
@@ -464,9 +485,9 @@ export function SoundStudio() {
         defaultTitle={custom ? "Your own thing" : presets[preset].name}
       />
       <section className="studio-footer-note">
-        <h2>Sounds like your kind of thing?</h2>
+        <h2>Now meet the speaker it lives in.</h2>
         <Link href="/#make-it-yours" className="button button-outline">
-          Meet your speaker
+          Pick a finish
         </Link>
       </section>
     </>

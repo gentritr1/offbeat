@@ -67,12 +67,15 @@ export async function pressSleeve(
   canvas.width = canvas.height = 1600;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Artwork could not be created.");
+  // Use the page's brand face (self-hosted, hashed family name) once it is loaded.
+  await document.fonts.ready;
+  const face = getComputedStyle(document.body).fontFamily;
   ctx.fillStyle = "#d6ef43";
   ctx.fillRect(0, 0, 1600, 1600);
   ctx.fillStyle = "#202020";
-  ctx.font = "bold 88px Helvetica, Arial, sans-serif";
+  ctx.font = `bold semi-expanded 88px ${face}`;
   ctx.fillText("offbeat", 110, 170);
-  ctx.font = "28px Helvetica, Arial, sans-serif";
+  ctx.font = `28px ${face}`;
   ctx.textAlign = "right";
   ctx.fillText("INDEPENDENT PRESSING", 1490, 160);
   const colors = ["#202020", "#ed512d", "#fafafa", "#202020"];
@@ -93,13 +96,13 @@ export async function pressSleeve(
   ctx.textAlign = "left";
   ctx.fillStyle = "#202020";
   let size = 106;
-  ctx.font = `bold ${size}px Helvetica, Arial, sans-serif`;
+  ctx.font = `bold semi-expanded ${size}px ${face}`;
   while (ctx.measureText(title).width > 1380 && size > 36) {
     size -= 2;
-    ctx.font = `bold ${size}px Helvetica, Arial, sans-serif`;
+    ctx.font = `bold semi-expanded ${size}px ${face}`;
   }
   ctx.fillText(title, 110, 1320);
-  ctx.font = "32px Helvetica, Arial, sans-serif";
+  ctx.font = `32px ${face}`;
   ctx.fillText(`${tempo} BPM / FOUR BARS / MADE BY YOU`, 110, 1470);
   return new Promise((resolve, reject) =>
     canvas.toBlob(

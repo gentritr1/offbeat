@@ -7,7 +7,6 @@ import {
   HandGrabbingIcon,
   SpeakerHighIcon,
   RadioIcon,
-  BatteryHighIcon,
   DropIcon,
 } from "@phosphor-icons/react";
 const Speaker = dynamic(() => import("./speaker"), {
@@ -27,7 +26,7 @@ const anatomy = [
   },
   {
     title: "A dial worth touching.",
-    body: "Knurled aluminum. A tactile turn. The volume control is right where your hand expects it to be.",
+    body: "Knurled aluminum with a firm detent every step. It sets the level, and it is the only control you need while a loop plays.",
     label: "Aluminum volume dial",
   },
   {
@@ -43,15 +42,14 @@ export function DesignExperience() {
     <>
       <section className="design-hero">
         <div className="design-heading">
-          <p className="small-label">Good design should feel good.</p>
           <h1>
             Made to
             <br />
             be played.
           </h1>
           <p className="body-copy">
-            Nothing extra. Nothing missing.
-            <br />A little object with a lot of thought behind it.
+            Pull it apart: two drivers, a passive radiator, a knurled dial and
+            three step keys.
           </p>
         </div>
         <div className="anatomy-stage">
@@ -81,7 +79,7 @@ export function DesignExperience() {
             </div>
             <span>
               <HandGrabbingIcon size={16} />
-              Take a closer look
+              Drag to turn
             </span>
           </div>
         </div>
@@ -130,50 +128,71 @@ export function DesignExperience() {
         />
         <div>
           <h2>
-            Fits the room.
+            Fits on a shelf.
             <br />
-            Sets the mood.
+            Fills the room.
           </h2>
-          <p>Easy to live with. Hard to leave behind.</p>
+          <p>740 g, 24 hours a charge, and a loop on the strap.</p>
         </div>
       </section>
       <section className="specs-section">
         <div>
           <h2>
-            The little
+            The back
             <br />
-            details.
+            of the sleeve.
           </h2>
-          <p className="body-copy">A big idea, in a small package.</p>
+          <p className="body-copy">
+            Everything on one side of a record. Fictional, but consistent.
+          </p>
           <span className="concept-specs">Concept specifications</span>
         </div>
-        <dl className="spec-table">
+        <div className="spec-sleeve">
+          <header>
+            <b>offbeat One</b>
+            <span className="readout">Portable speaker / drum machine</span>
+          </header>
           {[
-            ["Sound", "2 × 10 W full-range drivers"],
-            ["Battery", "Up to 24 hours of listening"],
-            ["Connection", "Bluetooth 5.3 + stereo pairing"],
-            ["Protection", "IP67 dust & water resistance"],
-            ["Dimensions", "230 × 150 × 100 mm"],
-            ["Weight", "740 g"],
-            ["Charging", "USB-C, approximately 3 hours"],
-            ["Controls", "Volume dial, play/pause, pairing"],
-          ].map(([label, value]) => (
-            <div key={label}>
-              <dt>{label}</dt>
-              <dd>{value}</dd>
+            [
+              "Side A",
+              "A",
+              [
+                ["Sound", "2 × 10 W"],
+                ["Battery", "24 h"],
+                ["Connection", "Bluetooth 5.3"],
+                ["Protection", "IP67"],
+              ],
+            ],
+            [
+              "Side B",
+              "B",
+              [
+                ["Size", "230 × 150 × 100 mm"],
+                ["Weight", "740 g"],
+                ["Charging", "USB-C, 3 h"],
+                ["Controls", "Dial, 3 step keys"],
+              ],
+            ],
+          ].map(([side, letter, rows]) => (
+            <div className="spec-side" key={side as string}>
+              <h3>{side as string}</h3>
+              <dl>
+                {(rows as string[][]).map(([label, value], n) => (
+                  <div key={label} data-track={`${letter}${n + 1}`}>
+                    <dt>{label}</dt>
+                    <span className="spec-leader" aria-hidden="true" />
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
           ))}
-        </dl>
+        </div>
       </section>
       <section className="design-ending">
-        <BatteryHighIcon size={42} />
-        <h2>
-          Ready for your
-          <br />
-          next good thing.
-        </h2>
+        <h2>Seen inside. Now pick the outside.</h2>
         <Link className="button" href="/#make-it-yours">
-          Choose your finish
+          Pick a finish
         </Link>
       </section>
     </>
