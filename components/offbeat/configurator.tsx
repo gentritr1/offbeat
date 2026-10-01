@@ -154,7 +154,7 @@ export function Configurator({
       </div>
       <div
         className="config-stage"
-        style={{ "--finish-field": finishes[finish].bg } as React.CSSProperties}
+        style={{ "--finish": finishes[finish].color } as React.CSSProperties}
       >
         <div className="config-color-field" />
         <Speaker color={finishes[finish].color} compact />

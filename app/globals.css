@@ -333,6 +333,19 @@ main {
   gap: 24px;
   flex-wrap: wrap;
 }
+/* The colour field behind the speaker is derived from the finish, per theme. */
+.product-stage,
+.config-stage {
+  --finish-field: color-mix(in oklab, var(--finish, var(--accent)) 16%, var(--bg));
+}
+:root[data-theme="dark"] .product-stage,
+:root[data-theme="dark"] .config-stage {
+  --finish-field: color-mix(
+    in oklab,
+    var(--finish, var(--accent)) 30%,
+    var(--surface)
+  );
+}
 .product-stage {
   height: 500px;
   position: relative;
@@ -759,6 +772,8 @@ main {
   .product-stage {
     height: 380px;
     margin: 14px -5% 0;
+    /* The base align-self: center collapses an item whose children are all absolute. */
+    align-self: stretch;
   }
   .product-orbit {
     height: 315px;
@@ -1449,7 +1464,14 @@ details[open] .faq-plus:after {
   color: var(--muted);
   text-align: center;
 }
-.step-labels > span.current {
+.sequencer[data-step="0"] .step-labels [data-s="0"],
+.sequencer[data-step="1"] .step-labels [data-s="1"],
+.sequencer[data-step="2"] .step-labels [data-s="2"],
+.sequencer[data-step="3"] .step-labels [data-s="3"],
+.sequencer[data-step="4"] .step-labels [data-s="4"],
+.sequencer[data-step="5"] .step-labels [data-s="5"],
+.sequencer[data-step="6"] .step-labels [data-s="6"],
+.sequencer[data-step="7"] .step-labels [data-s="7"] {
   color: var(--ink);
   font-weight: 700;
   text-decoration: underline;
@@ -1489,14 +1511,40 @@ details[open] .faq-plus:after {
   background: var(--primary);
   border-color: var(--primary);
 }
-.beat-pad.current {
+.sequencer[data-step="0"] .beat-pad[data-s="0"],
+.sequencer[data-step="1"] .beat-pad[data-s="1"],
+.sequencer[data-step="2"] .beat-pad[data-s="2"],
+.sequencer[data-step="3"] .beat-pad[data-s="3"],
+.sequencer[data-step="4"] .beat-pad[data-s="4"],
+.sequencer[data-step="5"] .beat-pad[data-s="5"],
+.sequencer[data-step="6"] .beat-pad[data-s="6"],
+.sequencer[data-step="7"] .beat-pad[data-s="7"] {
   box-shadow: inset 0 0 0 2px var(--accent);
 }
-.beat-pad.on > span {
+.beat-pad > span {
   position: absolute;
-  inset: 17px;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
   border-radius: 50%;
-  background: rgb(20 20 20 / 0.3);
+  background: oklch(0.2 0 0 / 0.38);
+  opacity: 0;
+}
+.beat-pad.on > span {
+  opacity: 1;
+}
+
+.sequencer[data-step="0"] .beat-pad.on[data-s="0"] > span,
+.sequencer[data-step="1"] .beat-pad.on[data-s="1"] > span,
+.sequencer[data-step="2"] .beat-pad.on[data-s="2"] > span,
+.sequencer[data-step="3"] .beat-pad.on[data-s="3"] > span,
+.sequencer[data-step="4"] .beat-pad.on[data-s="4"] > span,
+.sequencer[data-step="5"] .beat-pad.on[data-s="5"] > span,
+.sequencer[data-step="6"] .beat-pad.on[data-s="6"] > span,
+.sequencer[data-step="7"] .beat-pad.on[data-s="7"] > span {
+  background: var(--accent);
 }
 .sequencer-caption {
   display: flex;
@@ -1832,7 +1880,7 @@ details[open] .faq-plus:after {
     font-size: 12px;
   }
   .studio-controls {
-    padding: 25px 20px 20px;
+    padding: 25px 18px 20px;
   }
   .studio-control-heading h2 {
     font-size: 23px;
@@ -1847,12 +1895,24 @@ details[open] .faq-plus:after {
     min-height: 44px;
   }
   .sequencer {
-    min-width: 450px;
+    min-width: 0;
   }
+  /* Track names sit above their row so all eight steps fit without scrolling. */
   .step-labels,
   .track-row {
-    grid-template-columns: 68px repeat(8, minmax(40px, 1fr));
-    gap: 7px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .step-labels > span:first-child {
+    display: none;
+  }
+  .track-name {
+    grid-column: 1 / -1;
+    min-height: 28px;
+    font-size: 12px;
+  }
+  .track-row {
+    margin-bottom: 6px;
   }
   .beat-pad {
     height: 44px;
@@ -2190,6 +2250,21 @@ a:focus-visible {
   }
   .pressing-note {
     font-size: 14px;
+  }
+  .pressing-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .pressing-actions .button {
+    padding: 0 12px;
+  }
+  .pressing-actions .button:last-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 360px) {
+  .pressing-actions {
+    grid-template-columns: 1fr;
   }
 }
 @media (prefers-reduced-motion: reduce) {

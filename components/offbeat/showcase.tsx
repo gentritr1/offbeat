@@ -67,7 +67,7 @@ export function Showcase() {
         <div
           className="product-stage"
           style={
-            { "--finish-field": finishes[finish].bg } as React.CSSProperties
+            { "--finish": finishes[finish].color } as React.CSSProperties
           }
         >
           <div className="product-orbit" />

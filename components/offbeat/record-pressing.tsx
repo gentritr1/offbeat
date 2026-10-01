@@ -171,12 +171,9 @@ export function RecordPressing({
             <ImageIcon size={18} />
             {busy === "sleeve" ? "Making the sleeve…" : "Save sleeve"}
           </button>
-          <button
-            className="icon-button share-button"
-            onClick={share}
-            aria-label="Copy a link to your groove"
-          >
-            <CopyIcon size={20} />
+          <button className="button button-outline" onClick={share}>
+            <CopyIcon size={18} />
+            Share groove
           </button>
         </div>
         <p className="pressing-note">

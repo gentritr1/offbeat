@@ -20,9 +20,24 @@ export default function Speaker({
   const target = useRef({ color, exploded, rotation });
   target.current = { color, exploded, rotation };
   const [failed, setFailed] = useState(false);
+  // Build the scene only when it nears the viewport, so off-screen speakers
+  // do not add to the main-thread work at page load.
+  const [near, setNear] = useState(false);
   useEffect(() => wake.current(), [color, exploded, rotation]);
   useEffect(() => {
-    if (!host.current) return;
+    const node = host.current;
+    if (!node || near) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) setNear(true);
+      },
+      { rootMargin: "400px" },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [near, failed]);
+  useEffect(() => {
+    if (!host.current || !near) return;
     const node = host.current;
     let renderer: THREE.WebGLRenderer;
     try {
@@ -37,10 +52,11 @@ export default function Speaker({
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    // Neutral tone mapping keeps finish hues and chroma close to their swatches.
+    renderer.toneMapping = THREE.NeutralToneMapping;
+    renderer.toneMappingExposure = 1;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     node.appendChild(renderer.domElement);
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
@@ -278,13 +294,20 @@ export default function Speaker({
     let lost = false;
     const desiredColor = new THREE.Color();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    let baseZ = 9.4;
+    function placeCamera() {
+      // Pull back while exploded so the grille stays inside the stage.
+      camera.position.set(0, 3.1 + phase * 0.5, baseZ + phase * 3.2);
+      camera.lookAt(0, 0.05 - phase * 0.15, 0);
+    }
     function resize() {
       if (!node.clientWidth || !node.clientHeight) return;
       const w = node.clientWidth,
         h = node.clientHeight;
       renderer.setSize(w, h);
       camera.aspect = w / h;
-      camera.position.z = compact ? 9.8 : w < 430 ? 10.7 : 9.4;
+      baseZ = compact ? 9.8 : w < 430 ? 10.7 : 9.4;
+      placeCamera();
       camera.updateProjectionMatrix();
       requestRender();
     }
@@ -313,6 +336,7 @@ export default function Speaker({
       front.position.z = phase * 1.7;
       drivers.position.z = phase * 0.45;
       drivers.visible = phase > 0.025;
+      placeCamera();
       root.rotation.y = THREE.MathUtils.lerp(
         root.rotation.y,
         yaw + target.current.rotation,
@@ -391,6 +415,11 @@ export default function Speaker({
     node.addEventListener("keydown", keyDown);
     document.addEventListener("visibilitychange", visible);
     reduced.addEventListener("change", requestRender);
+    // Warm up the hidden drivers (including their shadow pass) so the first
+    // "Look inside" does not stall. The next render replaces this frame.
+    drivers.visible = true;
+    renderer.render(scene, camera);
+    drivers.visible = false;
     requestRender();
     const contextLost = (e: Event) => {
       e.preventDefault();
@@ -429,7 +458,7 @@ export default function Speaker({
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [compact, failed]);
+  }, [compact, failed, near]);
   return failed ? (
     <div className="canvas-fallback">
       <img src="/images/listening-room.webp" alt="OFFBEAT in hot orange" />

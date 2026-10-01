@@ -117,12 +117,12 @@ export function SoundStudio() {
   const [tempo, setTempo] = useState(112);
   const [volume, setVolume] = useState(38);
   const [playing, setPlaying] = useState(false);
-  const [step, setStep] = useState(-1);
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
   const [custom, setCustom] = useState(false);
   const [arrival, setArrival] = useState("");
   const engine = useRef<BeatEngine | null>(null);
+  const sequencer = useRef<HTMLDivElement>(null);
   const transportBusy = useRef(false);
   const generation = useRef(0);
   useEffect(() => {
@@ -156,7 +156,7 @@ export function SoundStudio() {
         generation.current++;
         void engine.current?.stop();
         setPlaying(false);
-        setStep(-1);
+        showStep(-1);
         setStarting(false);
       }
     };
@@ -168,13 +168,17 @@ export function SoundStudio() {
       engine.current = null;
     };
   }, []);
+  // The playhead is written straight to the DOM so playback does not re-render the studio.
+  function showStep(step: number) {
+    sequencer.current?.setAttribute("data-step", String(step));
+  }
   function getEngine() {
     if (!engine.current) {
       engine.current = new BeatEngine();
       engine.current.pattern = pattern;
       engine.current.tempo = tempo;
       engine.current.master.gain.value = volume / 100;
-      engine.current.onStep = setStep;
+      engine.current.onStep = showStep;
     }
     return engine.current;
   }
@@ -190,7 +194,7 @@ export function SoundStudio() {
         await e.stop();
         if (token === generation.current) {
           setPlaying(false);
-          setStep(-1);
+          showStep(-1);
         }
       } else {
         await e.start();
@@ -350,14 +354,14 @@ export function SoundStudio() {
           <div
             className="sequencer-scroll"
             role="region"
-            aria-label="Eight-step beat sequencer, scroll horizontally on small screens"
+            aria-label="Eight-step beat sequencer"
             tabIndex={0}
           >
-            <div className="sequencer">
+            <div className="sequencer" ref={sequencer} data-step="-1">
               <div className="step-labels">
                 <span />
                 {Array.from({ length: 8 }, (_, i) => (
-                  <span className={step === i ? "current" : ""} key={i}>
+                  <span data-s={i} key={i}>
                     {i + 1}
                   </span>
                 ))}
@@ -374,7 +378,8 @@ export function SoundStudio() {
                   {pattern[t].map((on, s) => (
                     <button
                       key={s}
-                      className={`beat-pad${on ? " on" : ""}${step === s ? " current" : ""}`}
+                      className={on ? "beat-pad on" : "beat-pad"}
+                      data-s={s}
                       onClick={() => flip(t, s)}
                       aria-label={`${track}, step ${s + 1}`}
                       aria-pressed={on}
