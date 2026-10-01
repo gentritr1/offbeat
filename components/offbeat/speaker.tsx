@@ -16,9 +16,11 @@ export default function Speaker({
   compact = false,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
+  const wake = useRef<() => void>(() => {});
   const target = useRef({ color, exploded, rotation });
   target.current = { color, exploded, rotation };
   const [failed, setFailed] = useState(false);
+  useEffect(() => wake.current(), [color, exploded, rotation]);
   useEffect(() => {
     if (!host.current) return;
     const node = host.current;
@@ -265,13 +267,15 @@ export default function Speaker({
     scene.add(ground);
     let yaw = -0.44,
       pitch = 0.05,
-      down = false,
+      pointer: number | null = null,
       lastX = 0,
       lastY = 0,
       seen = true,
       frame = 0,
       phase = 0,
       prev = 0;
+    let instant = false;
+    let lost = false;
     const desiredColor = new THREE.Color();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     function resize() {
@@ -282,6 +286,7 @@ export default function Speaker({
       camera.aspect = w / h;
       camera.position.z = compact ? 9.8 : w < 430 ? 10.7 : 9.4;
       camera.updateProjectionMatrix();
+      requestRender();
     }
     const observer = new ResizeObserver(resize);
     observer.observe(node);
@@ -289,18 +294,18 @@ export default function Speaker({
     const visibility = new IntersectionObserver(
       (entries) => {
         seen = entries[0].isIntersecting;
-        if (seen && !document.hidden && !frame)
-          frame = requestAnimationFrame(render);
+        requestRender();
       },
       { rootMargin: "100px" },
     );
     visibility.observe(node);
     function render(time: number) {
       frame = 0;
-      if (!seen || document.hidden) return;
+      if (!seen || document.hidden || lost) return;
       const dt = Math.min((time - prev) / 1000, 0.04) || 0.016;
       prev = time;
-      const k = reduced.matches ? 1 : 1 - Math.exp(-dt * 7);
+      const k = reduced.matches || instant ? 1 : 1 - Math.exp(-dt * 11);
+      instant = false;
       desiredColor.set(target.current.color);
       rubber.color.lerp(desiredColor, k);
       phase = THREE.MathUtils.lerp(phase, target.current.exploded ? 1 : 0, k);
@@ -315,16 +320,30 @@ export default function Speaker({
       );
       root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, pitch, k);
       renderer.render(scene, camera);
-      frame = requestAnimationFrame(render);
+      const settling =
+        Math.abs(phase - (target.current.exploded ? 1 : 0)) > 0.0001 ||
+        Math.abs(root.rotation.y - yaw - target.current.rotation) > 0.0001 ||
+        Math.abs(root.rotation.x - pitch) > 0.0001 ||
+        Math.abs(rubber.color.r - desiredColor.r) +
+          Math.abs(rubber.color.g - desiredColor.g) +
+          Math.abs(rubber.color.b - desiredColor.b) >
+          0.0001;
+      if (settling) requestRender();
     }
+    function requestRender() {
+      if (seen && !document.hidden && !lost && !frame)
+        frame = requestAnimationFrame(render);
+    }
+    wake.current = requestRender;
     function pointerDown(e: PointerEvent) {
-      down = true;
+      if (pointer !== null || !e.isPrimary || e.button !== 0) return;
+      pointer = e.pointerId;
       lastX = e.clientX;
       lastY = e.clientY;
       node.setPointerCapture(e.pointerId);
     }
     function pointerMove(e: PointerEvent) {
-      if (!down) return;
+      if (e.pointerId !== pointer) return;
       yaw += (e.clientX - lastX) * 0.008;
       pitch = THREE.MathUtils.clamp(
         pitch + (e.clientY - lastY) * 0.003,
@@ -333,9 +352,13 @@ export default function Speaker({
       );
       lastX = e.clientX;
       lastY = e.clientY;
+      requestRender();
     }
-    function pointerUp() {
-      down = false;
+    function pointerUp(e: PointerEvent) {
+      if (e.pointerId !== pointer) return;
+      pointer = null;
+      if (node.hasPointerCapture(e.pointerId))
+        node.releasePointerCapture(e.pointerId);
     }
     function keyDown(e: KeyboardEvent) {
       if (
@@ -353,32 +376,42 @@ export default function Speaker({
           pitch = 0.05;
         }
         pitch = THREE.MathUtils.clamp(pitch, -0.3, 0.45);
+        instant = true;
+        requestRender();
       }
     }
     function visible() {
-      if (!document.hidden && !frame) frame = requestAnimationFrame(render);
+      requestRender();
     }
     node.addEventListener("pointerdown", pointerDown);
     node.addEventListener("pointermove", pointerMove);
     node.addEventListener("pointerup", pointerUp);
     node.addEventListener("pointercancel", pointerUp);
+    node.addEventListener("lostpointercapture", pointerUp);
     node.addEventListener("keydown", keyDown);
     document.addEventListener("visibilitychange", visible);
-    frame = requestAnimationFrame(render);
+    reduced.addEventListener("change", requestRender);
+    requestRender();
     const contextLost = (e: Event) => {
       e.preventDefault();
+      lost = true;
+      cancelAnimationFrame(frame);
+      frame = 0;
       setFailed(true);
     };
     renderer.domElement.addEventListener("webglcontextlost", contextLost);
     return () => {
       cancelAnimationFrame(frame);
+      wake.current = () => {};
       observer.disconnect();
       visibility.disconnect();
       document.removeEventListener("visibilitychange", visible);
+      reduced.removeEventListener("change", requestRender);
       node.removeEventListener("pointerdown", pointerDown);
       node.removeEventListener("pointermove", pointerMove);
       node.removeEventListener("pointerup", pointerUp);
       node.removeEventListener("pointercancel", pointerUp);
+      node.removeEventListener("lostpointercapture", pointerUp);
       node.removeEventListener("keydown", keyDown);
       renderer.domElement.removeEventListener("webglcontextlost", contextLost);
       scene.traverse((o) => {
@@ -391,10 +424,12 @@ export default function Speaker({
       weave.dispose();
       brandTex.dispose();
       environment.dispose();
+      key.shadow.dispose();
       renderer.dispose();
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [compact]);
+  }, [compact, failed]);
   return failed ? (
     <div className="canvas-fallback">
       <img src="/images/listening-room.webp" alt="OFFBEAT in hot orange" />
@@ -405,7 +440,7 @@ export default function Speaker({
       ref={host}
       className="speaker-canvas"
       tabIndex={0}
-      role="img"
+      role="group"
       aria-label="Interactive OFFBEAT speaker. Drag to rotate, or use the arrow keys. Press Home to reset."
     />
   );

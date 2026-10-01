@@ -20,7 +20,12 @@ export function Configurator({
 }) {
   const [saved, setSaved] = useState(false);
   const [notice, setNotice] = useState("");
-  useEffect(() => setSaved(false), [finish]);
+  const [shareLink, setShareLink] = useState("");
+  useEffect(() => {
+    setSaved(false);
+    setShareLink("");
+    setNotice("");
+  }, [finish]);
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 3000);
@@ -48,9 +53,11 @@ export function Configurator({
     url.hash = "make-it-yours";
     try {
       await navigator.clipboard.writeText(url.toString());
+      setShareLink("");
       setNotice("Your color link is copied.");
     } catch {
-      setNotice("Copy the page address to share this color.");
+      setShareLink(url.toString());
+      setNotice("Your color link is ready to copy below.");
     }
   }
   useWebTool({
@@ -133,6 +140,17 @@ export function Configurator({
         <p className="device-note">
           A little inspiration, saved on your device.
         </p>
+        {shareLink && (
+          <div className="share-fallback">
+            <label htmlFor="color-link">Your color link</label>
+            <input
+              id="color-link"
+              value={shareLink}
+              readOnly
+              onFocus={(event) => event.currentTarget.select()}
+            />
+          </div>
+        )}
       </div>
       <div
         className="config-stage"

@@ -5,6 +5,7 @@
   font-display: swap;
 }
 :root {
+  color-scheme: light;
   --bg: oklch(0.985 0 0);
   --surface: oklch(0.948 0 0);
   --ink: oklch(0.2 0 0);
@@ -14,11 +15,23 @@
   --accent: oklch(0.65 0.21 34);
   --nav-bg: oklch(0.985 0 0 / 0.97);
   --radius: 12px;
+  --focus: oklch(0.5 0.17 34);
+  --record-ink: oklch(0.24 0 0);
+  --record-white: oklch(0.985 0 0);
+  --record-muted: oklch(0.45 0.1 113);
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-move: cubic-bezier(0.65, 0, 0.35, 1);
+  --motion-press: 140ms;
+  --motion-ui: 180ms;
+  --motion-view: 260ms;
+  --motion-scene: 480ms;
   --layer-header: 20;
   --layer-dialog: 40;
   --layer-toast: 50;
 }
 :root[data-theme="dark"] {
+  --focus: oklch(0.91 0.17 113);
+  color-scheme: dark;
   --bg: oklch(0.19 0 0);
   --surface: oklch(0.245 0 0);
   --ink: oklch(0.96 0 0);
@@ -39,6 +52,9 @@ body {
   color: var(--ink);
   font-family: Offbeat, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition:
+    background var(--motion-ui) ease,
+    color var(--motion-ui) ease;
 }
 a {
   color: inherit;
@@ -65,7 +81,8 @@ button {
   border: 0;
 }
 button:disabled {
-  cursor: wait;
+  cursor: default;
+  opacity: 0.55;
 }
 a:focus-visible,
 button:focus-visible,
@@ -73,7 +90,7 @@ input:focus-visible,
 select:focus-visible,
 summary:focus-visible,
 [tabindex]:focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--focus);
   outline-offset: 5px;
 }
 ::selection {
@@ -175,7 +192,7 @@ main {
   background: var(--ink);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.25s;
+  transition: transform var(--motion-ui) var(--ease-out);
 }
 .nav > a:hover:after,
 .nav > a[aria-current="page"]:after {
@@ -201,7 +218,7 @@ main {
   place-items: center;
   border-radius: 50%;
   background: transparent;
-  transition: background 0.2s;
+  transition: background var(--motion-ui) ease;
 }
 .icon-button:hover {
   background: var(--surface);
@@ -223,17 +240,19 @@ main {
   border-radius: 100px;
   white-space: nowrap;
   transition:
-    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-    background 0.2s;
+    transform var(--motion-press) var(--ease-out),
+    background var(--motion-ui) ease;
 }
-.button:hover {
-  transform: translateY(-3px);
+@media (hover: hover) and (pointer: fine) {
+  .button:hover {
+    transform: translateY(-3px);
+  }
 }
 .button:active {
   transform: scale(0.97);
 }
 .button-small {
-  min-height: 43px;
+  min-height: 44px;
   padding: 0 23px;
   font-size: 14px;
 }
@@ -255,6 +274,7 @@ main {
   gap: 12px;
   font-size: 15px;
   font-weight: 600;
+  min-height: 44px;
 }
 .mini-record {
   width: 24px;
@@ -330,7 +350,7 @@ main {
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: -2;
-  transition: background 600ms;
+  transition: background var(--motion-scene) ease;
 }
 .product-watermark {
   font-size: 280px;
@@ -383,7 +403,7 @@ main {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 15px;
   border: 1px solid var(--line);
   border-radius: 100px;
@@ -424,8 +444,8 @@ main {
   border-radius: 50%;
   border: 1px solid transparent;
   transition:
-    border-color 0.2s,
-    transform 0.25s;
+    border-color var(--motion-ui) ease,
+    transform var(--motion-press) var(--ease-out);
 }
 .swatch span {
   display: block;
@@ -435,8 +455,10 @@ main {
   background: var(--swatch);
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
 }
-.swatch:hover {
-  transform: scale(1.12);
+@media (hover: hover) and (pointer: fine) {
+  .swatch:hover {
+    transform: scale(1.12);
+  }
 }
 .swatch.selected {
   border-color: var(--ink);
@@ -526,10 +548,12 @@ main {
 }
 .listening-image img {
   height: 100%;
-  transition: transform 1s;
+  transition: transform var(--motion-scene) var(--ease-move);
 }
-.listening-image:hover img {
-  transform: scale(1.04);
+@media (hover: hover) and (pointer: fine) {
+  .listening-image:hover img {
+    transform: scale(1.04);
+  }
 }
 .listening-copy h2 {
   font-size: clamp(40px, 4vw, 64px);
@@ -570,7 +594,7 @@ main {
   margin-top: 22px;
 }
 .route-enter {
-  animation: route-in 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: route-in var(--motion-view) var(--ease-out);
 }
 @keyframes route-in {
   from {
@@ -683,6 +707,14 @@ main {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
+    transform-origin: top right;
+    transition:
+      opacity var(--motion-ui) var(--ease-out),
+      transform var(--motion-ui) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
   }
   .nav.is-open > a {
     font-size: 20px;
@@ -778,7 +810,7 @@ main {
     aspect-ratio: 1.25;
   }
   .listening-copy h2 {
-    font-size: 46px;
+    font-size: clamp(35px, 10.5vw, 46px);
   }
   .listening-copy p {
     font-size: 16px;
@@ -885,8 +917,8 @@ main {
   font-size: 14px;
   text-align: left;
   transition:
-    background 0.25s,
-    border-color 0.25s;
+    background var(--motion-ui) ease,
+    border-color var(--motion-ui) ease;
 }
 .finish-option > span {
   width: 21px;
@@ -953,7 +985,7 @@ main {
   inset: 40px;
   background: var(--finish-field);
   border-radius: 50%;
-  transition: background 0.6s;
+  transition: background var(--motion-scene) ease;
   z-index: -1;
 }
 .config-product-name {
@@ -981,7 +1013,7 @@ main {
 }
 .toast {
   position: fixed;
-  bottom: 25px;
+  bottom: max(25px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translate(-50%, 20px);
   background: var(--ink);
@@ -993,8 +1025,8 @@ main {
   opacity: 0;
   pointer-events: none;
   transition:
-    transform 0.3s,
-    opacity 0.3s;
+    transform var(--motion-press) var(--ease-out),
+    opacity var(--motion-ui) var(--ease-out);
   max-width: 90%;
   text-align: center;
 }
@@ -1047,7 +1079,7 @@ main {
   left: 3px;
   width: 14px;
   height: 1px;
-  transition: transform 0.3s;
+  transition: transform var(--motion-press) var(--ease-out);
 }
 .faq-plus:after {
   transform: rotate(90deg);
@@ -1161,14 +1193,14 @@ details[open] .faq-plus:after {
   place-items: center;
   border-radius: 50%;
   background: var(--surface);
-  transition: background 0.3s;
+  transition: background var(--motion-ui) ease;
 }
 .selected > .detail-circle {
   background: var(--primary);
   color: #222;
 }
 .anatomy-copy {
-  animation: route-in 0.5s ease-out;
+  min-width: 0;
 }
 .anatomy-copy h2 {
   font-size: clamp(32px, 3.2vw, 46px);
@@ -1340,10 +1372,12 @@ details[open] .faq-plus:after {
   color: #222;
   border-radius: 50%;
   margin: 35px 0 22px;
-  transition: transform 0.3s;
+  transition: transform var(--motion-press) var(--ease-out);
 }
-.play-circle:hover {
-  transform: scale(1.07);
+@media (hover: hover) and (pointer: fine) {
+  .play-circle:hover {
+    transform: scale(1.07);
+  }
 }
 .play-circle:active {
   transform: scale(0.97);
@@ -1379,10 +1413,10 @@ details[open] .faq-plus:after {
   color: var(--muted);
   padding: 0 14px;
   border-radius: 100px;
-  min-height: 43px;
+  min-height: 44px;
   font-size: 13px;
   border: 1px solid transparent;
-  transition: background 0.25s;
+  transition: background var(--motion-ui) ease;
 }
 .preset.chosen {
   background: var(--ink);
@@ -1416,8 +1450,10 @@ details[open] .faq-plus:after {
   text-align: center;
 }
 .step-labels > span.current {
-  color: var(--accent);
+  color: var(--ink);
   font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 .track-row {
   margin-bottom: 9px;
@@ -1433,7 +1469,7 @@ details[open] .faq-plus:after {
   color: var(--ink);
 }
 .beat-pad {
-  height: 43px;
+  height: 44px;
   border-radius: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -1447,7 +1483,7 @@ details[open] .faq-plus:after {
   border-color: var(--ink);
 }
 .beat-pad:active {
-  transform: scale(0.92);
+  transform: scale(0.97);
 }
 .beat-pad.on {
   background: var(--primary);
@@ -1478,7 +1514,7 @@ details[open] .faq-plus:after {
   background: none;
   color: var(--ink);
   font-size: 13px;
-  min-height: 35px;
+  min-height: 44px;
   padding: 0;
   white-space: nowrap;
 }
@@ -1646,7 +1682,7 @@ details[open] .faq-plus:after {
     gap: 35px;
   }
   .config-copy h2 {
-    font-size: 48px;
+    font-size: clamp(36px, 11vw, 48px);
   }
   .config-finishes {
     max-width: 500px;
@@ -1739,7 +1775,7 @@ details[open] .faq-plus:after {
     gap: 35px;
   }
   .specs-section h2 {
-    font-size: 48px;
+    font-size: clamp(36px, 11vw, 48px);
   }
   .spec-table {
     gap: 25px 16px;
@@ -1808,7 +1844,7 @@ details[open] .faq-plus:after {
   .preset {
     font-size: 12px;
     padding: 0 11px;
-    min-height: 42px;
+    min-height: 44px;
   }
   .sequencer {
     min-width: 450px;
@@ -1836,7 +1872,7 @@ details[open] .faq-plus:after {
     padding-top: 8px;
   }
   .sequencer-caption > button {
-    min-height: 38px;
+    min-height: 44px;
   }
   .studio-action {
     margin-top: 26px;
@@ -1877,4 +1913,302 @@ details[open] .faq-plus:after {
   .play-circle {
     transition: none;
   }
+}
+
+/* Pressable controls share the same tactile response. */
+.icon-button,
+.scene-tool,
+.preset,
+.finish-option,
+.segmented > button {
+  transition:
+    transform var(--motion-press) var(--ease-out),
+    background var(--motion-ui) ease,
+    border-color var(--motion-ui) ease;
+}
+.icon-button:active,
+.scene-tool:active,
+.preset:active,
+.finish-option:active,
+.segmented > button:active,
+.swatch:active {
+  transform: scale(0.97);
+}
+button:disabled:hover {
+  transform: none;
+}
+button:focus-visible,
+a:focus-visible {
+  transition-duration: 0ms;
+}
+.studio-arrival {
+  margin: -15px 4.5% 25px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.share-fallback {
+  margin-top: 20px;
+}
+.share-fallback label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.share-fallback input,
+.pressing-copy > input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 16px;
+}
+.pressing-copy > input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.record-pressing {
+  margin: 110px 4.5% 100px;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 8%;
+  align-items: center;
+  padding-top: 60px;
+  border-top: 1px solid var(--line);
+}
+.record-sleeve {
+  position: relative;
+  padding-right: 18%;
+  margin: 20px 0;
+  isolation: isolate;
+  min-width: 0;
+}
+.sleeve-art {
+  position: relative;
+  z-index: 1;
+  aspect-ratio: 1;
+  background: var(--primary);
+  color: var(--record-ink);
+  padding: 8%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transform: rotate(-5deg);
+}
+.sleeve-brand {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.sleeve-brand b {
+  font-size: clamp(18px, 2vw, 28px);
+  letter-spacing: -0.04em;
+}
+.sleeve-brand span {
+  font-size: 11px;
+}
+.sleeve-pattern {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+  align-items: center;
+  justify-items: center;
+}
+.sleeve-pattern i {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--record-ink);
+  transition:
+    transform var(--motion-ui) var(--ease-out),
+    background var(--motion-ui) ease;
+}
+.sleeve-pattern i[data-track="1"] {
+  background: var(--accent);
+}
+.sleeve-pattern i[data-track="2"] {
+  background: var(--record-white);
+}
+.sleeve-pattern i[data-on="false"] {
+  transform: scale(0.2);
+  background: var(--record-muted);
+}
+.sleeve-title strong {
+  font-size: clamp(24px, 2.7vw, 42px);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.sleeve-title > span {
+  display: block;
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.vinyl {
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1;
+  top: 50%;
+  right: 0;
+  translate: 0 -50%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, #202020 0 2px, #303030 3px 4px);
+  display: grid;
+  place-items: center;
+  animation: record-spin 5s linear infinite;
+  animation-play-state: paused;
+}
+.record-sleeve[data-spinning="true"] .vinyl {
+  animation-play-state: running;
+}
+.vinyl-label {
+  width: 32%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--record-ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.vinyl-label span {
+  font-size: 10px;
+}
+.vinyl-label b {
+  font-size: clamp(15px, 2vw, 28px);
+}
+.vinyl-label:after {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--record-ink);
+}
+@keyframes record-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.pressing-copy {
+  min-width: 0;
+}
+.pressing-copy h2 {
+  font-size: clamp(36px, 4.4vw, 66px);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+.pressing-copy > p:first-of-type {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--muted);
+  max-width: 45ch;
+  margin: 24px 0 28px;
+}
+.pressing-copy > label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 12px;
+}
+.pressing-copy > label span {
+  color: var(--muted);
+  font-weight: 400;
+}
+.pressing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.pressing-actions .button {
+  gap: 8px;
+  font-size: 14px;
+  padding: 0 20px;
+}
+.pressing-note {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 15px;
+}
+.pressing-feedback {
+  min-height: 42px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.pressing-feedback svg {
+  flex-shrink: 0;
+}
+@media (max-width: 1100px) {
+  .record-pressing {
+    gap: 6%;
+  }
+  .sleeve-pattern {
+    gap: 6px;
+  }
+  .pressing-actions .button {
+    padding: 0 15px;
+  }
+}
+@media (max-width: 767px) {
+  .studio-arrival {
+    margin: -8px 6% 20px;
+  }
+  .record-pressing {
+    margin: 60px 6%;
+    grid-template-columns: 1fr;
+    gap: 40px;
+    padding-top: 40px;
+  }
+  .record-sleeve {
+    width: 90%;
+    max-width: 420px;
+    margin: 25px auto;
+  }
+  .sleeve-brand b {
+    font-size: 25px;
+  }
+  .sleeve-title strong {
+    font-size: 30px;
+  }
+  .pressing-copy > p:first-of-type {
+    font-size: 16px;
+  }
+  .pressing-note {
+    font-size: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vinyl {
+    animation: none;
+  }
+  .sleeve-pattern i {
+    transition: none;
+  }
+  .button:hover,
+  .swatch:hover,
+  .play-circle:hover,
+  .listening-image:hover img {
+    transform: none;
+  }
+}
+:root[data-input="keyboard"] .route-enter,
+:root[data-input="keyboard"] .sleeve-pattern i,
+:root[data-input="keyboard"] .nav.is-open {
+  animation: none;
+  transition: none;
 }

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useWebTool, stringArgument } from "@/lib/offbeat/web-tools";
 import Link from "next/link";
+import { RecordPressing } from "./record-pressing";
+import { decodeGroove } from "@/lib/offbeat/session";
 import {
   PlayIcon,
   PauseIcon,
@@ -29,7 +31,9 @@ function Visualizer({
   useEffect(() => {
     const c = canvas.current;
     if (!c) return;
-    const ctx = c.getContext("2d")!;
+    const context = c.getContext("2d");
+    if (!context) return;
+    const ctx = context;
     let frame = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     const data = new Uint8Array(128);
@@ -38,6 +42,7 @@ function Visualizer({
     const resize = new ResizeObserver(() => {
       c.width = c.clientWidth * Math.min(devicePixelRatio, 2);
       c.height = c.clientHeight * Math.min(devicePixelRatio, 2);
+      wake();
     });
     resize.observe(c);
     const obs = new IntersectionObserver((es) => {
@@ -54,12 +59,14 @@ function Visualizer({
       if (playing && engine.current)
         engine.current.analyser.getByteFrequencyData(data);
       const gap = w / 40;
+      let settling = false;
       for (let i = 0; i < 40; i++) {
         const idle = (Math.sin(i * 0.46) * 0.3 + 0.4) * h * 0.18;
         const desired = playing
           ? Math.max(h * 0.018, ((data[i * 2] || 0) / 255) * h * 0.8)
           : idle;
         heights[i] += (desired - heights[i]) * (reduced.matches ? 1 : 0.17);
+        if (Math.abs(desired - heights[i]) > 0.1) settling = true;
         const bh = heights[i];
         ctx.fillStyle = i % 7 === 0 ? "#ed512d" : "#d6ef43";
         ctx.beginPath();
@@ -72,18 +79,21 @@ function Visualizer({
         );
         ctx.fill();
       }
-      if (!reduced.matches) frame = requestAnimationFrame(draw);
+      if (!reduced.matches && (playing || settling))
+        frame = requestAnimationFrame(draw);
     }
     function wake() {
       if (!document.hidden && !frame) draw();
     }
     document.addEventListener("visibilitychange", wake);
+    reduced.addEventListener("change", wake);
     draw();
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
       obs.disconnect();
       document.removeEventListener("visibilitychange", wake);
+      reduced.removeEventListener("change", wake);
     };
   }, [playing, engine]);
   return (
@@ -111,7 +121,24 @@ export function SoundStudio() {
   const [error, setError] = useState("");
   const [starting, setStarting] = useState(false);
   const [custom, setCustom] = useState(false);
+  const [arrival, setArrival] = useState("");
   const engine = useRef<BeatEngine | null>(null);
+  const transportBusy = useRef(false);
+  const generation = useRef(0);
+  useEffect(() => {
+    const value = new URL(location.href).searchParams.get("groove");
+    const shared = decodeGroove(value);
+    if (shared) {
+      setPattern(shared.pattern);
+      setTempo(shared.tempo);
+      setCustom(true);
+      setArrival("A groove just for you. Press play to hear it.");
+    } else if (value) {
+      setArrival(
+        "This groove link looks incomplete. Kitchen disco is ready to play instead.",
+      );
+    }
+  }, []);
   useEffect(() => {
     if (engine.current) {
       engine.current.pattern = pattern;
@@ -126,15 +153,19 @@ export function SoundStudio() {
   useEffect(() => {
     const hide = () => {
       if (document.hidden) {
+        generation.current++;
         void engine.current?.stop();
         setPlaying(false);
         setStep(-1);
+        setStarting(false);
       }
     };
     document.addEventListener("visibilitychange", hide);
     return () => {
       document.removeEventListener("visibilitychange", hide);
+      generation.current++;
       void engine.current?.dispose();
+      engine.current = null;
     };
   }, []);
   function getEngine() {
@@ -148,23 +179,35 @@ export function SoundStudio() {
     return engine.current;
   }
   async function toggle() {
+    if (transportBusy.current) return;
+    transportBusy.current = true;
+    const token = ++generation.current;
     setError("");
-    if (playing) {
-      await engine.current?.stop();
-      setPlaying(false);
-      setStep(-1);
-      return;
-    }
     setStarting(true);
     try {
-      await getEngine().start();
-      setPlaying(true);
+      const e = getEngine();
+      if (playing) {
+        await e.stop();
+        if (token === generation.current) {
+          setPlaying(false);
+          setStep(-1);
+        }
+      } else {
+        await e.start();
+        if (token !== generation.current || document.hidden) {
+          if (e.ctx.state !== "closed") await e.stop();
+          return;
+        }
+        setPlaying(true);
+      }
     } catch {
-      setError(
-        "Sound could not start. Check your browser audio settings and try again.",
-      );
+      if (token === generation.current)
+        setError(
+          "Sound could not start. Check your browser audio settings and try again.",
+        );
     } finally {
-      setStarting(false);
+      transportBusy.current = false;
+      if (token === generation.current) setStarting(false);
     }
   }
   function choose(i: number) {
@@ -201,6 +244,7 @@ export function SoundStudio() {
     try {
       const e = getEngine();
       await e.ctx.resume();
+      if (document.hidden) return;
       e.playVoice(t);
     } catch {
       setError("Your browser could not play this sound. Try pressing Play.");
@@ -243,6 +287,11 @@ export function SoundStudio() {
           See where the good noise takes you.
         </p>
       </section>
+      {arrival && (
+        <p className="studio-arrival" role="status">
+          {arrival}
+        </p>
+      )}
       <section className="studio-workspace" aria-label="Interactive beat maker">
         <div className="studio-visual">
           <div className="studio-visual-top">
@@ -251,7 +300,7 @@ export function SoundStudio() {
           </div>
           <Visualizer engine={engine} playing={playing} />
           <div className="studio-now">
-            <span>Now playing</span>
+            <span>{playing ? "Now playing" : "On the turntable"}</span>
             <h2>{custom ? "Your own thing" : presets[preset].name}</h2>
             <p>
               {tempo} BPM <span className="studio-divider" /> Made by you.
@@ -403,6 +452,12 @@ export function SoundStudio() {
           </p>
         </div>
       </section>
+      <RecordPressing
+        pattern={pattern}
+        tempo={tempo}
+        playing={playing}
+        defaultTitle={custom ? "Your own thing" : presets[preset].name}
+      />
       <section className="studio-footer-note">
         <h2>Sounds like your kind of thing?</h2>
         <Link href="/#make-it-yours" className="button button-outline">

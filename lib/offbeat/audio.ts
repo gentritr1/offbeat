@@ -35,6 +35,90 @@ export const presets = [
 export function toPattern(data: number[][]): Pattern {
   return data.map((row) => row.map(Boolean));
 }
+export function createNoise(ctx: BaseAudioContext) {
+  const noise = ctx.createBuffer(
+    1,
+    Math.ceil(ctx.sampleRate * 0.5),
+    ctx.sampleRate,
+  );
+  const data = noise.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  return noise;
+}
+export function scheduleVoice(
+  ctx: BaseAudioContext,
+  master: GainNode,
+  noiseBuffer: AudioBuffer,
+  active: Set<AudioScheduledSourceNode>,
+  track: number,
+  time: number,
+  step: number,
+) {
+  const gain = ctx.createGain();
+  gain.connect(master);
+  if (track === 0) {
+    const osc = ctx.createOscillator();
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(43, time + 0.15);
+    gain.gain.setValueAtTime(0.85, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
+    osc.connect(gain);
+    active.add(osc);
+    osc.start(time);
+    osc.stop(time + 0.3);
+    osc.onended = () => {
+      active.delete(osc);
+      osc.disconnect();
+      gain.disconnect();
+    };
+  } else if (track === 1 || track === 2) {
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = track === 1 ? "highpass" : "bandpass";
+    filter.frequency.value = track === 1 ? 1300 : 7500;
+    filter.Q.value = track === 1 ? 0.7 : 1.2;
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.gain.setValueAtTime(track === 1 ? 0.5 : 0.21, time);
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      time + (track === 1 ? 0.15 : 0.055),
+    );
+    active.add(noise);
+    noise.start(time);
+    noise.stop(time + 0.19);
+    noise.onended = () => {
+      active.delete(noise);
+      noise.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    };
+  } else {
+    const osc = ctx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = [65.41, 65.41, 82.41, 98, 65.41, 87.31, 82.41, 98][
+      step % 8
+    ];
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 380;
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.gain.setValueAtTime(0.001, time);
+    gain.gain.exponentialRampToValueAtTime(0.42, time + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.23);
+    active.add(osc);
+    osc.start(time);
+    osc.stop(time + 0.26);
+    osc.onended = () => {
+      active.delete(osc);
+      osc.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    };
+  }
+}
 export class BeatEngine {
   active = new Set<AudioScheduledSourceNode>();
   ctx: AudioContext;
@@ -56,79 +140,18 @@ export class BeatEngine {
     this.analyser.fftSize = 256;
     this.master.connect(this.analyser);
     this.analyser.connect(this.ctx.destination);
-    this.noise = this.ctx.createBuffer(
-      1,
-      this.ctx.sampleRate * 0.5,
-      this.ctx.sampleRate,
-    );
-    const data = this.noise.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    this.noise = createNoise(this.ctx);
   }
   playVoice(track: number, time = this.ctx.currentTime, step = 0) {
-    const gain = this.ctx.createGain();
-    gain.connect(this.master);
-    if (track === 0) {
-      const osc = this.ctx.createOscillator();
-      osc.frequency.setValueAtTime(150, time);
-      osc.frequency.exponentialRampToValueAtTime(43, time + 0.15);
-      gain.gain.setValueAtTime(0.85, time);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.28);
-      osc.connect(gain);
-      this.active.add(osc);
-      osc.start(time);
-      osc.stop(time + 0.3);
-      osc.onended = () => {
-        this.active.delete(osc);
-        osc.disconnect();
-        gain.disconnect();
-      };
-    } else if (track === 1 || track === 2) {
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = this.noise;
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = track === 1 ? "highpass" : "bandpass";
-      filter.frequency.value = track === 1 ? 1300 : 7500;
-      filter.Q.value = track === 1 ? 0.7 : 1.2;
-      noise.connect(filter);
-      filter.connect(gain);
-      gain.gain.setValueAtTime(track === 1 ? 0.5 : 0.21, time);
-      gain.gain.exponentialRampToValueAtTime(
-        0.001,
-        time + (track === 1 ? 0.15 : 0.055),
-      );
-      this.active.add(noise);
-      noise.start(time);
-      noise.stop(time + 0.19);
-      noise.onended = () => {
-        this.active.delete(noise);
-        noise.disconnect();
-        filter.disconnect();
-        gain.disconnect();
-      };
-    } else {
-      const osc = this.ctx.createOscillator();
-      osc.type = "triangle";
-      osc.frequency.value = [65.41, 65.41, 82.41, 98, 65.41, 87.31, 82.41, 98][
-        step % 8
-      ];
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = 380;
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.gain.setValueAtTime(0.001, time);
-      gain.gain.exponentialRampToValueAtTime(0.42, time + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.23);
-      this.active.add(osc);
-      osc.start(time);
-      osc.stop(time + 0.26);
-      osc.onended = () => {
-        this.active.delete(osc);
-        osc.disconnect();
-        filter.disconnect();
-        gain.disconnect();
-      };
-    }
+    scheduleVoice(
+      this.ctx,
+      this.master,
+      this.noise,
+      this.active,
+      track,
+      time,
+      step,
+    );
   }
   async start() {
     if (this.timer) return;
@@ -163,12 +186,12 @@ export class BeatEngine {
       } catch {}
     });
     this.active.clear();
-    await this.ctx.suspend();
+    if (this.ctx.state !== "closed") await this.ctx.suspend();
   }
   async dispose() {
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
-    this.callbacks.forEach(clearTimeout);
+    if (this.ctx.state === "closed") return;
+    this.onStep = () => {};
+    await this.stop();
     this.master.disconnect();
     this.analyser.disconnect();
     await this.ctx.close();
