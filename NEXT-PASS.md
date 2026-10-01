@@ -8,7 +8,8 @@ Self-contained. You do not need the conversation that produced it. Read `PRODUCT
 - **B (identity): done by Claude in-session**, awaiting the owner's screenshot approval (taste calls: typeface, copy, logo).
 - A and B are committed on `pass-3-polish` (7c68f30, 16fc743).
 - **C1 (swing): done by Claude in-session**, verified end to end: dial keys and drag, v1/v2 links, live playhead 375/125ms at 75%, exported WAV onset at 0.373s (expected 0.375s). Note: the C1 formula below had a stray x0.5; the shipped standard is late = (swing - 50) / 50 of a step.
-- **C2 (speaker plays along) and C3: not started.**
+- **C2 (speaker plays along): done by Claude in-session.** The studio panel shows the 3D speaker in the visitor's saved finish. A kick squashes it 4% with the feet planted (top edge drops up to 5px in sampled frames, ~8.7px computed peak at 218px tall). Any note flashes the LED vermilion, and the dial turns with swing. Reduced motion keeps colour only. Playback stays at 0 frames over budget at 4x throttle. The brief's "+0.04 units" was invisible at studio size and was replaced by an absolute pixel target. Open: the studio now has a ~264ms load block while the scene builds.
+- **C3: not started.**
 
 ## Context
 

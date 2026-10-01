@@ -9,10 +9,12 @@ const archivo = Archivo({
   variable: "--font-sans",
   display: "swap",
 });
+// Mono is only for numeric readouts (studio, specs), so it is not preloaded on every page.
 const martian = Martian_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
   display: "swap",
+  preload: false,
 });
 export const metadata: Metadata = {
   title: {

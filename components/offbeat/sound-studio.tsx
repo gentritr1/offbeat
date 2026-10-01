@@ -3,6 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useWebTool, stringArgument } from "@/lib/offbeat/web-tools";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+import type { SpeakerPulse } from "./speaker";
+import { finishes, readPreference } from "@/lib/offbeat/finishes";
 import { RecordPressing } from "./record-pressing";
 import { SwingDial } from "./swing-dial";
 import { decodeGroove } from "@/lib/offbeat/session";
@@ -21,6 +24,10 @@ import {
   tracks,
   type Pattern,
 } from "@/lib/offbeat/audio";
+const Speaker = dynamic(() => import("./speaker"), {
+  ssr: false,
+  loading: () => <div className="canvas-loading" role="status" />,
+});
 function Visualizer({
   engine,
   playing,
@@ -125,8 +132,15 @@ export function SoundStudio() {
   const [arrival, setArrival] = useState("");
   const engine = useRef<BeatEngine | null>(null);
   const sequencer = useRef<HTMLDivElement>(null);
+  const speaker = useRef<SpeakerPulse | null>(null);
+  // The studio shows the finish the visitor saved on the speaker page.
+  const [finish, setFinish] = useState(finishes[0].color);
   const transportBusy = useRef(false);
   const generation = useRef(0);
+  useEffect(() => {
+    const saved = Number(readPreference("offbeat-finish"));
+    if (Number.isInteger(saved) && finishes[saved]) setFinish(finishes[saved].color);
+  }, []);
   useEffect(() => {
     const value = new URL(location.href).searchParams.get("groove");
     const shared = decodeGroove(value);
@@ -188,6 +202,12 @@ export function SoundStudio() {
   function showStep(step: number) {
     sequencer.current?.setAttribute("data-step", String(step));
   }
+  // Each step also drives the 3D speaker: a kick squashes it, any note lights the LED.
+  function playStep(step: number) {
+    showStep(step);
+    const current = engine.current?.pattern;
+    if (current?.some((row) => row[step])) speaker.current?.hit(current[0][step]);
+  }
   function getEngine() {
     if (!engine.current) {
       engine.current = new BeatEngine();
@@ -195,7 +215,7 @@ export function SoundStudio() {
       engine.current.tempo = tempo;
       engine.current.swing = swing;
       engine.current.master.gain.value = volume / 100;
-      engine.current.onStep = showStep;
+      engine.current.onStep = playStep;
     }
     return engine.current;
   }
@@ -317,6 +337,15 @@ export function SoundStudio() {
           <div className="studio-visual-top">
             <span>Step sequencer</span>
             <span className="readout">8 steps · 4 sounds</span>
+          </div>
+          <div className="studio-speaker">
+            <Speaker
+              color={finish}
+              compact
+              zoom={1.3}
+              swing={swing}
+              pulse={speaker}
+            />
           </div>
           <Visualizer engine={engine} playing={playing} />
           <div className="studio-now">

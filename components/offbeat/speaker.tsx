@@ -3,27 +3,37 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+/** Imperative beat input, so playback never re-renders React. */
+export type SpeakerPulse = { hit: (kick: boolean) => void };
 type Props = {
   color: string;
   exploded?: boolean;
   rotation?: number;
   compact?: boolean;
+  /** 50 (straight) to 75: turns the knurled dial. */
+  swing?: number;
+  /** Frames the speaker larger (>1) or smaller in its stage. */
+  zoom?: number;
+  pulse?: React.RefObject<SpeakerPulse | null>;
 };
 export default function Speaker({
   color,
   exploded = false,
   rotation = 0,
   compact = false,
+  swing = 50,
+  zoom = 1,
+  pulse,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const wake = useRef<() => void>(() => {});
-  const target = useRef({ color, exploded, rotation });
-  target.current = { color, exploded, rotation };
+  const target = useRef({ color, exploded, rotation, swing });
+  target.current = { color, exploded, rotation, swing };
   const [failed, setFailed] = useState(false);
   // Build the scene only when it nears the viewport, so off-screen speakers
   // do not add to the main-thread work at page load.
   const [near, setNear] = useState(false);
-  useEffect(() => wake.current(), [color, exploded, rotation]);
+  useEffect(() => wake.current(), [color, exploded, rotation, swing]);
   useEffect(() => {
     const node = host.current;
     if (!node || near) return;
@@ -191,38 +201,40 @@ export default function Speaker({
     );
     brand.position.set(-1.33, -0.84, 0.939);
     front.add(brand);
+    // The knurled dial turns as one piece (it is the swing control).
+    const dialGroup = new THREE.Group();
+    dialGroup.position.set(1.05, 1.4, 0.05);
+    body.add(dialGroup);
     const dial = new THREE.Mesh(
       new THREE.CylinderGeometry(0.25, 0.25, 0.18, 64),
       metal,
     );
-    dial.position.set(1.05, 1.4, 0.05);
     dial.castShadow = true;
-    body.add(dial);
+    dialGroup.add(dial);
     for (let i = 0; i < 48; i++) {
       const a = (i / 48) * Math.PI * 2;
       const notch = new THREE.Mesh(
         new THREE.BoxGeometry(0.011, 0.12, 0.012),
         rubberDark,
       );
-      notch.position.set(
-        1.05 + Math.sin(a) * 0.251,
-        1.4,
-        0.05 + Math.cos(a) * 0.251,
-      );
+      notch.position.set(Math.sin(a) * 0.251, 0, Math.cos(a) * 0.251);
       notch.rotation.y = a;
-      body.add(notch);
+      dialGroup.add(notch);
     }
     const marker = new THREE.Mesh(
       new THREE.BoxGeometry(0.022, 0.004, 0.11),
       black,
     );
-    marker.position.set(1.05, 1.492, 0.13);
-    body.add(marker);
+    marker.position.set(0, 0.092, 0.08);
+    dialGroup.add(marker);
     for (let i = 0; i < 3; i++)
       box(0.23, 0.03, 0.18, 0.035, black, -1.1 + i * 0.45, 1.315, -0.08, body);
+    const ledIdle = new THREE.Color("#d6ef43");
+    const ledLive = new THREE.Color("#ee512d");
+    const ledMaterial = new THREE.MeshBasicMaterial({ color: ledIdle });
     const led = new THREE.Mesh(
-      new THREE.SphereGeometry(0.024, 12, 12),
-      new THREE.MeshBasicMaterial({ color: "#d6ef43" }),
+      new THREE.SphereGeometry(0.03, 16, 16),
+      ledMaterial,
     );
     led.position.set(0.3, 1.326, -0.08);
     body.add(led);
@@ -304,6 +316,9 @@ export default function Speaker({
       prev = 0;
     let instant = false;
     let lost = false;
+    // Beat response: thump squashes the body on a kick, glow lights the LED on any note.
+    let thump = 0;
+    let glow = 0;
     const desiredColor = new THREE.Color();
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     let baseZ = 9.4;
@@ -318,7 +333,7 @@ export default function Speaker({
         h = node.clientHeight;
       renderer.setSize(w, h);
       camera.aspect = w / h;
-      baseZ = compact ? 9.8 : w < 430 ? 10.7 : 9.4;
+      baseZ = (compact ? 9.8 : w < 430 ? 10.7 : 9.4) / zoom;
       placeCamera();
       camera.updateProjectionMatrix();
       requestRender();
@@ -355,11 +370,33 @@ export default function Speaker({
         k,
       );
       root.rotation.x = THREE.MathUtils.lerp(root.rotation.x, pitch, k);
+      // Straight points the marker forward; full swing turns it 270° clockwise.
+      const dialTarget = -((target.current.swing - 50) / 25) * Math.PI * 1.5;
+      dialGroup.rotation.y = THREE.MathUtils.lerp(
+        dialGroup.rotation.y,
+        dialTarget,
+        k,
+      );
+      // Recover from a kick in about 120 ms; the LED fades a little slower.
+      thump *= Math.exp(-dt * 25);
+      glow *= Math.exp(-dt * 12);
+      if (thump < 0.001) thump = 0;
+      if (glow < 0.001) glow = 0;
+      // About 4% shorter at the hit (6-9 px at studio size), a little wider, feet on the floor.
+      const squashY = 1 - 0.04 * thump;
+      const squashXZ = 1 + 0.016 * thump;
+      root.scale.set(squashXZ, squashY, squashXZ);
+      root.position.y = -1.4 * (1 - squashY);
+      ledMaterial.color.copy(ledIdle).lerp(ledLive, Math.min(1, glow * 1.4));
+      led.scale.setScalar(1 + (reduced.matches ? 0 : 1.2 * glow));
       renderer.render(scene, camera);
       const settling =
         Math.abs(phase - (target.current.exploded ? 1 : 0)) > 0.0001 ||
         Math.abs(root.rotation.y - yaw - target.current.rotation) > 0.0001 ||
         Math.abs(root.rotation.x - pitch) > 0.0001 ||
+        Math.abs(dialGroup.rotation.y - dialTarget) > 0.0001 ||
+        thump > 0 ||
+        glow > 0 ||
         Math.abs(rubber.color.r - desiredColor.r) +
           Math.abs(rubber.color.g - desiredColor.g) +
           Math.abs(rubber.color.b - desiredColor.b) >
@@ -371,6 +408,15 @@ export default function Speaker({
         frame = requestAnimationFrame(render);
     }
     wake.current = requestRender;
+    if (pulse)
+      pulse.current = {
+        hit(kick) {
+          // Reduced motion keeps the LED (colour) and drops the squash (movement).
+          if (kick && !reduced.matches) thump = 1;
+          glow = 1;
+          requestRender();
+        },
+      };
     function pointerDown(e: PointerEvent) {
       if (pointer !== null || !e.isPrimary || e.button !== 0) return;
       pointer = e.pointerId;
@@ -445,6 +491,7 @@ export default function Speaker({
       disposed = true;
       cancelAnimationFrame(frame);
       wake.current = () => {};
+      if (pulse) pulse.current = null;
       observer.disconnect();
       visibility.disconnect();
       document.removeEventListener("visibilitychange", visible);
@@ -471,7 +518,7 @@ export default function Speaker({
       renderer.forceContextLoss();
       renderer.domElement.remove();
     };
-  }, [compact, failed, near]);
+  }, [compact, failed, near, pulse, zoom]);
   return failed ? (
     <div className="canvas-fallback">
       <img src="/images/listening-room.webp" alt="OFFBEAT in hot orange" />
