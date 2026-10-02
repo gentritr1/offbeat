@@ -63,6 +63,9 @@ export default function Speaker({
   };
   const [failed, setFailed] = useState(false);
   const [near, setNear] = useState(false);
+  // The poster only covers the wait for the first frame. Once it has faded out it
+  // is removed, so later finish or explode changes never fetch hidden images.
+  const [posterDone, setPosterDone] = useState(false);
   useEffect(() => {
     controller.current?.send({
       type: "state",
@@ -129,6 +132,10 @@ export default function Speaker({
       if (cancelled) return;
       if (event.type === "ready") {
         node.dataset.ready = "true";
+        // Matches the 180ms opacity hand-off in globals.css, plus a frame.
+        window.setTimeout(() => {
+          if (!cancelled) setPosterDone(true);
+        }, 220);
         return;
       }
       if (event.type === "error") {
@@ -150,8 +157,9 @@ export default function Speaker({
       const frame = event.frame;
       if (dial.current)
         dial.current.style.transform = `translate(${frame.dial.x - 24}px, ${frame.dial.y - 24}px)`;
+      // Per-frame diagnostics only for QA scripts, which set the flag before load.
+      if (!(globalThis as { __offbeatQA?: boolean }).__offbeatQA) return;
       node.dataset.step = String(frame.step);
-      // Projected geometry is diagnostic metadata; strip QA still samples rendered pixels.
       node.dataset.frame = JSON.stringify(frame);
       node.dispatchEvent(new CustomEvent("speakerframe", { detail: frame }));
     }
@@ -348,18 +356,20 @@ export default function Speaker({
           : "Interactive OFFBEAT speaker. Drag to rotate, or use the arrow keys. Press Home to reset."
       }
     >
-      <SpeakerPoster
-        color={color}
-        variant={
-          compact
-            ? zoom > 1
-              ? "studio"
-              : "compact"
-            : exploded
-              ? "design"
-              : "hero"
-        }
-      />
+      {!posterDone && (
+        <SpeakerPoster
+          color={color}
+          variant={
+            compact
+              ? zoom > 1
+                ? "studio"
+                : "compact"
+              : exploded
+                ? "design"
+                : "hero"
+          }
+        />
+      )}
       {onSwingChange && (
         <div
           ref={dial}

@@ -15,6 +15,8 @@ try {
       viewport: { width, height: 1000 },
       deviceScaleFactor: 1,
     });
+    // Per-frame speaker diagnostics are only emitted when this flag is set before load.
+    await page.addInitScript(() => { globalThis.__offbeatQA = true; });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     for (const [slug, preset, query] of [

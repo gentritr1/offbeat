@@ -462,6 +462,18 @@ export function createSpeakerScene(
         ),
       );
       if (diffusers.instanceColor) diffusers.instanceColor.needsUpdate = true;
+      if (first) {
+        // compileAsync builds the programs, but the GPU finishes pipeline setup and
+        // buffer upload on the first real draw. Draw the hidden drivers once into a
+        // single scissored pixel now; the full render below repaints it in this frame.
+        const shown = drivers.visible;
+        drivers.visible = true;
+        renderer.setScissorTest(true);
+        renderer.setScissor(0, 0, 1, 1);
+        renderer.render(scene, camera);
+        renderer.setScissorTest(false);
+        drivers.visible = shown;
+      }
       renderer.render(scene, camera);
       const leds = strip.map((mesh) => {
         const center = world(mesh),

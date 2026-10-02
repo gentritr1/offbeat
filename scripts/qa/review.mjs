@@ -13,6 +13,8 @@ try {
     recordVideo: { dir: out, size: { width: 1440, height: 1000 } },
   });
   const page = await context.newPage();
+  // Per-frame speaker diagnostics are only emitted when this flag is set before load.
+  await page.addInitScript(() => { globalThis.__offbeatQA = true; });
   await page.goto(base + "/studio/?groove=2.120.c0000000.50", {
     waitUntil: "networkidle",
   });

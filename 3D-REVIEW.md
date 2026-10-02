@@ -2,6 +2,33 @@
 
 Status: implemented in source, awaiting browser verification. This is not motion approval or a claim that the performance targets are met. `3D-BRIEF.md` explicitly requests a stop for owner review after item 2. Items 3–5 remain unchanged.
 
+## Browser verification and fixes (Claude, 2026-10-02)
+
+Measured in Chrome on an M-series Mac at 120 Hz, against the production export (`out/`, static server). This replaces the UNVERIFIED cells below for items 0-2. Feel approval from the owner is still pending.
+
+| Item / metric | Before (brief) | After (measured) | Instrument |
+|---|---|---|---|
+| 0: load block caused by the 3D | 189ms / ~264ms | **None.** The only long frames are page boot (11-17ms after navigation), 0-8ms blocking across 3 runs | `longtasks.mjs`, plus a LoAF observer |
+| 0: drag, 1x and 4x | p95 9.2ms, 0 over 2x budget | p95 9.2 / 9.1ms, **0 over 2x budget**, counts reconcile | `frames.mjs` (main thread) |
+| 0: worker render pacing | not measurable on main thread | 491 worker rAF during drag + explode: gap p95 9.2ms, render callback max 3.7ms | Chrome trace, `FireAnimationFrame` on the DedicatedWorker thread |
+| 0: studio playback, 4x | 0 over 2x budget | **0 over 2x budget** | `frames.mjs` |
+| 0: first explode, 1x (5 fresh loads) | one ~33ms frame | before fix: 92, 200, 34, 9, 9ms. After the scissored warm-up draw: **33, 25, 32, 27, 34ms**. Later explodes: 10ms | rAF distribution script |
+| 0: first explode, 4x | n/a | 59-109ms, **not fixed**. The main thread sits idle inside BeginMainFrame (about 1ms of accounted work), waiting on the GPU | Chrome trace |
+| 0: colour fidelity | orange 95%, yellow 97% | **identical** (95% / 97%, ΔL 0.03 / 0.02) | `color.mjs` |
+| 0: exact-render poster | none | **26 posters captured** (8-24KB WebP each, versus the 252KB photo fallback). Poster vs first 3D frame: mean diff 0.3-1.1 out of 255, 0.05-1.3% of pixels >60. Removed after the 180ms hand-off | `posters.mjs` + a poster/frame pixel diff |
+| 0: main-thread fallback (no OffscreenCanvas) | untested | forced by deleting `transferControlToOffscreen`: all 3 routes ready, beats and dial work, 0 errors | init-script override |
+| 1: strip matches the sequencer | n/a | **64 / 64 PASS**. Real pixel RGB per LED; LED about 5px raster at 390px width | `strip.mjs` |
+| 1: key travel, reduced motion | n/a | travel is sized to ≥2.2 screen px by projection; 0 under reduced motion. Squash drops the top edge up to 5px with the feet planted; none under reduced motion | silhouette probe |
+| 2: 60px 3D dial drag | display-only | slider **60** = model **60**, hit area 48×48 | `review.mjs` |
+| 2: playhead lateness at 120 BPM | n/a | straight **252/249ms**; 75% swing **376/126ms** (expected 375/125) | `review.mjs` (completed-render arrivals) |
+
+Fixes made in this pass:
+- **Photo flash before first frame**: posters captured; the poster unmounts after hand-off, so finish and explode changes no longer fetch hidden images. The below-the-fold configurator poster loads lazily.
+- **First-explode stall**: the drivers get one real draw into a scissored 1×1 region inside the first frame (compileAsync alone left GPU pipeline setup to the first visible draw). Partial: the 1x worst cases are gone, but the 4x wait remains (see above).
+- **Diagnostics in production**: per-frame `data-frame` JSON, `data-step` and `speakerframe` events now only run when `globalThis.__offbeatQA` is set before load; `strip.mjs` and `review.mjs` set it.
+
+Environment note: on this machine the system audio clock stalled (AudioContext `running` but `currentTime` advanced 6ms in 800ms), which freezes the sequencer at step 0. Playback-dependent checks were run with Chrome's `--disable-audio-output`, a timer-driven fake output that keeps timing and drops sound. Still UNVERIFIED: real-phone touch, iOS Safari audio, audible check by ear.
+
 ## Before and after
 
 The before measurements below were supplied in the brief (Chrome, M-series Mac, 120Hz). They were not reproduced in this restricted session. An unavailable result is not zero and is not a pass.
