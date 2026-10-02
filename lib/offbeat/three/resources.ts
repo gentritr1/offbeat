@@ -63,6 +63,12 @@ export function brandTexture(brand: BrandPixels) {
     );
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.flipY = true;
+    // DataTexture defaults to nearest sampling, unlike the previous CanvasTexture.
+    // The printed mark is minified heavily; mipmaps prevent broken/shimmering strokes.
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = true;
+    texture.anisotropy = 4;
     texture.needsUpdate = true;
     return texture;
   });
@@ -79,6 +85,7 @@ export function contactTexture() {
         );
       }
     const texture = new THREE.DataTexture(pixels, size, size);
+    texture.minFilter = texture.magFilter = THREE.LinearFilter;
     texture.needsUpdate = true;
     return texture;
   });

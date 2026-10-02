@@ -1,6 +1,6 @@
 # OFFBEAT 3D — implementation checkpoint, items 0–2
 
-Status: implemented in source, awaiting browser verification. This is not motion approval or a claim that the performance targets are met. `3D-BRIEF.md` explicitly requests a stop for owner review after item 2. Items 3–5 remain unchanged.
+Latest review: see `POLISH-REVIEW.md` for the measured follow-up and remaining limits. Browser verification and exact-render posters are now available. This file retains the earlier checkpoint history; the original UNVERIFIED cells below describe that earlier restricted session. Owner feel approval and real-phone audio/touch checks remain pending. Items 3–5 remain outside the checkpoint.
 
 ## Browser verification and fixes (Claude, 2026-10-02)
 
@@ -29,7 +29,7 @@ Fixes made in this pass:
 
 Environment note: on this machine the system audio clock stalled (AudioContext `running` but `currentTime` advanced 6ms in 800ms), which freezes the sequencer at step 0. Playback-dependent checks were run with Chrome's `--disable-audio-output`, a timer-driven fake output that keeps timing and drops sound. Still UNVERIFIED: real-phone touch, iOS Safari audio, audible check by ear.
 
-## Before and after
+## Historical: before and after from the original restricted session
 
 The before measurements below were supplied in the brief (Chrome, M-series Mac, 120Hz). They were not reproduced in this restricted session. An unavailable result is not zero and is not a pass.
 
@@ -59,7 +59,7 @@ The before measurements below were supplied in the brief (Chrome, M-series Mac, 
 - Audio scheduling captures each step's track mask alongside its sound; the same scheduled callback sends `{step, tracks}` to the hardware. Silent steps advance the light too. Stopping clears the playhead and key response.
 - Both swing inputs update the same React value, using the same drag law. Beat traffic remains imperative. Keyboard changes skip the spring. No tick sound was added.
 
-## Checks completed and blockers
+## Historical: checks completed and blockers in the original session
 
 On Node v24.18.0: TypeScript check, 13 tests and the production static export pass. Tests cover groove encoding, audio scheduling, queued track masks, swing timing/export, the shared gesture and spring integration. These do not verify WebGL, audible output, visual quality or performance.
 

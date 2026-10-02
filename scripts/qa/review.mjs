@@ -6,7 +6,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 const base = process.argv[2] || "http://localhost:3000";
 const out = process.argv[3] || "qa-review";
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ channel: "chrome" });
+const browser = await chromium.launch({
+  channel: "chrome",
+  args:
+    process.env.OFFBEAT_FAKE_AUDIO === "1" ? ["--disable-audio-output"] : [],
+});
 try {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -14,7 +18,9 @@ try {
   });
   const page = await context.newPage();
   // Per-frame speaker diagnostics are only emitted when this flag is set before load.
-  await page.addInitScript(() => { globalThis.__offbeatQA = true; });
+  await page.addInitScript(() => {
+    globalThis.__offbeatQA = true;
+  });
   await page.goto(base + "/studio/?groove=2.120.c0000000.50", {
     waitUntil: "networkidle",
   });
@@ -95,6 +101,10 @@ try {
     };
   });
   const result = {
+    audioOutput:
+      process.env.OFFBEAT_FAKE_AUDIO === "1"
+        ? "silent timer-driven output"
+        : "system",
     dragPx: 60,
     start: 50,
     slider: value,

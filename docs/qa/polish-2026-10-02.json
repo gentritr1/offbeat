@@ -1,0 +1,1116 @@
+{
+  "date": "2026-10-02",
+  "baseCommit": "bc26841",
+  "browser": "Chrome 154.0.8037.97",
+  "audio": "silent timer-driven output; not acoustic or real-device verification",
+  "before": {
+    "frames4x": [
+      {
+        "label": "3D drag",
+        "throttle": 4,
+        "hz": 120.48,
+        "durationMs": 3072,
+        "frames": 368,
+        "expected": 370,
+        "missedSlots": 2,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.9,
+        "maxFrameMs": 17.2,
+        "framesOver2xBudget": 1,
+        "status": "FAIL"
+      },
+      {
+        "label": "first explode",
+        "throttle": 4,
+        "hz": 120.48,
+        "durationMs": 1300.6,
+        "frames": 149,
+        "expected": 157,
+        "missedSlots": 7,
+        "reconciliationResidual": 1,
+        "reconciles": true,
+        "p50": 8.2,
+        "p95": 9.9,
+        "maxFrameMs": 67.3,
+        "framesOver2xBudget": 1,
+        "status": "FAIL"
+      },
+      {
+        "label": "studio playing",
+        "throttle": 4,
+        "hz": 120.48,
+        "durationMs": 2996.1,
+        "frames": 361,
+        "expected": 361,
+        "missedSlots": 0,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.8,
+        "maxFrameMs": 10.3,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      },
+      {
+        "label": "vinyl + playing",
+        "throttle": 4,
+        "hz": 120.48,
+        "durationMs": 1994.8,
+        "frames": 240,
+        "expected": 240,
+        "missedSlots": 0,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.8,
+        "maxFrameMs": 10.4,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      }
+    ],
+    "audit": {
+      "pages": [
+        {
+          "width": 390,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 390,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 390,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        }
+      ],
+      "traffic": {
+        "idle": 0,
+        "drag": {
+          "messages": 94,
+          "framePayloads": 94,
+          "bytes": 89528
+        }
+      },
+      "checks": [
+        {
+          "fallback": false,
+          "action": "60px dial drag",
+          "slider": 60,
+          "model": 60,
+          "hitArea": [
+            48,
+            48
+          ]
+        },
+        {
+          "fallback": false,
+          "action": "reduced-motion keyboard End",
+          "slider": 75,
+          "model": 75
+        },
+        {
+          "fallback": true,
+          "action": "60px dial drag",
+          "slider": 60,
+          "model": 60,
+          "hitArea": [
+            48,
+            48
+          ]
+        },
+        {
+          "fallback": true,
+          "action": "reduced-motion keyboard End",
+          "slider": 75,
+          "model": 75
+        }
+      ],
+      "status": "PASS"
+    },
+    "longFrames": [
+      {
+        "route": "/",
+        "renderer": "worker",
+        "ready": true,
+        "observation": "navigation through 6s after load",
+        "loafCount": 0,
+        "longestFrameMs": null,
+        "longestBlockingMs": 0,
+        "longest": "No frames at or above the API's 50ms threshold",
+        "errors": [],
+        "status": "PASS"
+      },
+      {
+        "route": "/studio/",
+        "renderer": "worker",
+        "ready": true,
+        "observation": "navigation through 6s after load",
+        "loafCount": 0,
+        "longestFrameMs": null,
+        "longestBlockingMs": 0,
+        "longest": "No frames at or above the API's 50ms threshold",
+        "errors": [],
+        "status": "PASS"
+      }
+    ],
+    "colour": "Hot orange   swatch #ee512d L0.65 C0.199 h34 | rendered #f45e42 L0.67 C0.190 h33 | chroma 95% hue\u0394 2\u00b0 L\u0394 0.03\nAcid yellow  swatch #d6ef43 L0.90 C0.188 h118 | rendered #dbf453 L0.92 C0.182 h118 | chroma 97% hue\u0394 0\u00b0 L\u0394 0.02\nChalk        swatch #e5e5dc L0.92 C0.012 h107 | rendered #f2f2eb L0.96 C0.009 h107 | chroma 77% hue\u0394 0\u00b0 L\u0394 0.04\nAfter hours  swatch #333738 L0.33 C0.006 h214 | rendered #383d40 L0.36 C0.009 h234 | chroma 147% hue\u0394 20\u00b0 L\u0394 0.02\n"
+  },
+  "after": {
+    "frames4x": [
+      {
+        "label": "3D drag",
+        "throttle": 4,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.05,
+        "durationMs": 3365.7,
+        "frames": 404,
+        "expected": 404,
+        "missedSlots": 0,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.2,
+        "maxFrameMs": 9.4,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      },
+      {
+        "label": "first explode",
+        "throttle": 4,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.05,
+        "durationMs": 1259.1,
+        "frames": 150,
+        "expected": 151,
+        "missedSlots": 1,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.1,
+        "maxFrameMs": 16.9,
+        "framesOver2xBudget": 1,
+        "status": "FAIL"
+      },
+      {
+        "label": "studio playing",
+        "throttle": 4,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.05,
+        "durationMs": 2996.3,
+        "frames": 362,
+        "expected": 360,
+        "missedSlots": 0,
+        "reconciliationResidual": -2,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.1,
+        "maxFrameMs": 9.4,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      },
+      {
+        "label": "vinyl + playing",
+        "throttle": 4,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.05,
+        "durationMs": 1992.3,
+        "frames": 239,
+        "expected": 239,
+        "missedSlots": 0,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.1,
+        "maxFrameMs": 9.3,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      }
+    ],
+    "frames1x": [
+      {
+        "label": "3D drag",
+        "throttle": 1,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.95,
+        "durationMs": 3020.8,
+        "frames": 363,
+        "expected": 365,
+        "missedSlots": 0,
+        "reconciliationResidual": 2,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.1,
+        "maxFrameMs": 9.3,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      },
+      {
+        "label": "first explode",
+        "throttle": 1,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.95,
+        "durationMs": 1220.4,
+        "frames": 148,
+        "expected": 148,
+        "missedSlots": 0,
+        "reconciliationResidual": 0,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.2,
+        "maxFrameMs": 9.6,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      },
+      {
+        "label": "studio playing",
+        "throttle": 1,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.95,
+        "durationMs": 2999.6,
+        "frames": 360,
+        "expected": 363,
+        "missedSlots": 0,
+        "reconciliationResidual": 3,
+        "reconciles": false,
+        "p50": 8.3,
+        "p95": 9.2,
+        "maxFrameMs": 9.4,
+        "framesOver2xBudget": 0,
+        "status": "FAIL"
+      },
+      {
+        "label": "vinyl + playing",
+        "throttle": 1,
+        "audioOutput": "silent timer-driven output",
+        "hz": 120.95,
+        "durationMs": 1987.5,
+        "frames": 241,
+        "expected": 240,
+        "missedSlots": 0,
+        "reconciliationResidual": -1,
+        "reconciles": true,
+        "p50": 8.3,
+        "p95": 9.2,
+        "maxFrameMs": 9.7,
+        "framesOver2xBudget": 0,
+        "status": "PASS"
+      }
+    ],
+    "otherFinalBuildRuns4x": [
+      [
+        {
+          "label": "3D drag",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 120.48,
+          "durationMs": 3042.3,
+          "frames": 364,
+          "expected": 367,
+          "missedSlots": 1,
+          "reconciliationResidual": 2,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.2,
+          "maxFrameMs": 17,
+          "framesOver2xBudget": 1,
+          "status": "FAIL"
+        },
+        {
+          "label": "first explode",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 120.48,
+          "durationMs": 1316.7,
+          "frames": 148,
+          "expected": 159,
+          "missedSlots": 10,
+          "reconciliationResidual": 1,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.1,
+          "maxFrameMs": 83,
+          "framesOver2xBudget": 2,
+          "status": "FAIL"
+        },
+        {
+          "label": "studio playing",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 120.48,
+          "durationMs": 2992.5,
+          "frames": 359,
+          "expected": 361,
+          "missedSlots": 0,
+          "reconciliationResidual": 2,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.1,
+          "maxFrameMs": 9.3,
+          "framesOver2xBudget": 0,
+          "status": "PASS"
+        },
+        {
+          "label": "vinyl + playing",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 120.48,
+          "durationMs": 1995.2,
+          "frames": 240,
+          "expected": 240,
+          "missedSlots": 0,
+          "reconciliationResidual": 0,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9,
+          "maxFrameMs": 9.4,
+          "framesOver2xBudget": 0,
+          "status": "PASS"
+        }
+      ],
+      [
+        {
+          "label": "3D drag",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 121,
+          "durationMs": 3108.4,
+          "frames": 369,
+          "expected": 376,
+          "missedSlots": 4,
+          "reconciliationResidual": 3,
+          "reconciles": false,
+          "p50": 8.3,
+          "p95": 9.1,
+          "maxFrameMs": 25.4,
+          "framesOver2xBudget": 1,
+          "status": "FAIL"
+        },
+        {
+          "label": "first explode",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 121,
+          "durationMs": 1342.4,
+          "frames": 154,
+          "expected": 162,
+          "missedSlots": 10,
+          "reconciliationResidual": -2,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.2,
+          "maxFrameMs": 74.3,
+          "framesOver2xBudget": 2,
+          "status": "FAIL"
+        },
+        {
+          "label": "studio playing",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 121,
+          "durationMs": 2999.3,
+          "frames": 361,
+          "expected": 363,
+          "missedSlots": 0,
+          "reconciliationResidual": 2,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.1,
+          "maxFrameMs": 9.3,
+          "framesOver2xBudget": 0,
+          "status": "PASS"
+        },
+        {
+          "label": "vinyl + playing",
+          "throttle": 4,
+          "audioOutput": "silent timer-driven output",
+          "hz": 121,
+          "durationMs": 1991.8,
+          "frames": 239,
+          "expected": 241,
+          "missedSlots": 0,
+          "reconciliationResidual": 2,
+          "reconciles": true,
+          "p50": 8.3,
+          "p95": 9.1,
+          "maxFrameMs": 9.3,
+          "framesOver2xBudget": 0,
+          "status": "PASS"
+        }
+      ]
+    ],
+    "longFrames": [
+      {
+        "route": "/",
+        "renderer": "worker",
+        "ready": true,
+        "observation": "navigation through 6s after load",
+        "loafCount": 1,
+        "longestFrameMs": 54.19999980926514,
+        "longestBlockingMs": 0,
+        "longest": {
+          "name": "long-animation-frame",
+          "entryType": "long-animation-frame",
+          "startTime": 8.800000190734863,
+          "duration": 54.19999980926514,
+          "navigationId": 6226,
+          "paintTime": 63,
+          "presentationTime": 96,
+          "renderStart": 62.200000286102295,
+          "styleAndLayoutStart": 62.200000286102295,
+          "firstUIEventTimestamp": 0,
+          "blockingDuration": 0,
+          "scripts": [
+            {
+              "name": "script",
+              "entryType": "script",
+              "startTime": 26.5,
+              "duration": 23.90000009536743,
+              "navigationId": 6226,
+              "invoker": "http://127.0.0.1:3000/_next/static/chunks/main-app-9eb64e28279a6c0c.js",
+              "invokerType": "classic-script",
+              "windowAttribution": "self",
+              "executionStart": 26.5,
+              "forcedStyleAndLayoutDuration": 0,
+              "pauseDuration": 0,
+              "sourceURL": "http://127.0.0.1:3000/_next/static/chunks/main-app-9eb64e28279a6c0c.js",
+              "sourceFunctionName": "",
+              "sourceCharPosition": 0
+            }
+          ]
+        },
+        "errors": [],
+        "status": "FAIL"
+      },
+      {
+        "route": "/studio/",
+        "renderer": "worker",
+        "ready": true,
+        "observation": "navigation through 6s after load",
+        "loafCount": 1,
+        "longestFrameMs": 61.5,
+        "longestBlockingMs": 0,
+        "longest": {
+          "name": "long-animation-frame",
+          "entryType": "long-animation-frame",
+          "startTime": 8.299999713897705,
+          "duration": 61.5,
+          "navigationId": 2827,
+          "paintTime": 69.7999997138977,
+          "presentationTime": 124,
+          "renderStart": 60.5,
+          "styleAndLayoutStart": 60.69999980926514,
+          "firstUIEventTimestamp": 0,
+          "blockingDuration": 0,
+          "scripts": [
+            {
+              "name": "script",
+              "entryType": "script",
+              "startTime": 37.09999990463257,
+              "duration": 21.40000009536743,
+              "navigationId": 2827,
+              "invoker": "http://127.0.0.1:3000/_next/static/chunks/794-e4f0e754a5db91b4.js",
+              "invokerType": "classic-script",
+              "windowAttribution": "self",
+              "executionStart": 37.09999990463257,
+              "forcedStyleAndLayoutDuration": 0,
+              "pauseDuration": 0,
+              "sourceURL": "http://127.0.0.1:3000/_next/static/chunks/794-e4f0e754a5db91b4.js",
+              "sourceFunctionName": "",
+              "sourceCharPosition": 0
+            }
+          ]
+        },
+        "errors": [],
+        "status": "FAIL"
+      }
+    ],
+    "colour": "Hot orange   swatch #ee512d L0.65 C0.199 h34 | rendered #f45d42 L0.67 C0.191 h32 | chroma 96% hue\u0394 2\u00b0 L\u0394 0.03\nAcid yellow  swatch #d6ef43 L0.90 C0.188 h118 | rendered #dbf453 L0.92 C0.182 h118 | chroma 97% hue\u0394 0\u00b0 L\u0394 0.02\nChalk        swatch #e5e5dc L0.92 C0.012 h107 | rendered #f2f2eb L0.96 C0.009 h107 | chroma 77% hue\u0394 0\u00b0 L\u0394 0.04\nAfter hours  swatch #333738 L0.33 C0.006 h214 | rendered #383d40 L0.36 C0.009 h234 | chroma 147% hue\u0394 20\u00b0 L\u0394 0.02\n",
+    "audit": {
+      "pages": [
+        {
+          "width": 390,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 390,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 390,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 768,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/design/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        },
+        {
+          "width": 1440,
+          "route": "/studio/",
+          "overflow": false,
+          "renderer": "worker",
+          "retainedPosters": 0,
+          "errors": []
+        }
+      ],
+      "traffic": {
+        "idle": 0,
+        "drag": {
+          "messages": 0,
+          "framePayloads": 0,
+          "bytes": 0
+        }
+      },
+      "checks": [
+        {
+          "production": true,
+          "width": 390,
+          "action": "60px production dial drag",
+          "slider": 60
+        },
+        {
+          "production": true,
+          "width": 768,
+          "action": "60px production dial drag",
+          "slider": 60
+        },
+        {
+          "production": true,
+          "width": 1440,
+          "action": "60px production dial drag",
+          "slider": 60
+        },
+        {
+          "fallback": false,
+          "action": "60px dial drag",
+          "slider": 60,
+          "model": 60,
+          "hitArea": [
+            48,
+            48
+          ]
+        },
+        {
+          "fallback": false,
+          "action": "reduced-motion keyboard End",
+          "slider": 75,
+          "model": 75
+        },
+        {
+          "fallback": true,
+          "action": "60px dial drag",
+          "slider": 60,
+          "model": 60,
+          "hitArea": [
+            48,
+            48
+          ]
+        },
+        {
+          "fallback": true,
+          "action": "reduced-motion keyboard End",
+          "slider": 75,
+          "model": 75
+        }
+      ],
+      "recovery": {
+        "posterObserved": true,
+        "renderer": "main",
+        "swing": 60
+      },
+      "status": "PASS"
+    },
+    "anatomy": [
+      {
+        "label": "explode",
+        "frames": 35,
+        "inputToLastFrameMs": 562,
+        "settleSpanMs": 520.5999999046326,
+        "triangles": 17608,
+        "drawCalls": 25,
+        "phase": 1,
+        "finite": true
+      },
+      {
+        "label": "collapse",
+        "frames": 23,
+        "inputToLastFrameMs": 363,
+        "settleSpanMs": 348.40000009536743,
+        "triangles": 11848,
+        "drawCalls": 17,
+        "phase": 0,
+        "finite": true
+      },
+      {
+        "label": "interrupted explode returns assembled",
+        "frames": 37,
+        "inputToLastFrameMs": 362.6000003814697,
+        "settleSpanMs": 582.8000001907349,
+        "triangles": 11848,
+        "drawCalls": 17,
+        "phase": 0,
+        "finite": true
+      },
+      {
+        "label": "keyboard explode",
+        "frames": 1,
+        "inputToLastFrameMs": 7,
+        "settleSpanMs": 0,
+        "triangles": 17608,
+        "drawCalls": 25,
+        "phase": 1,
+        "finite": true
+      },
+      {
+        "label": "reduced-motion collapse",
+        "frames": 2,
+        "inputToLastFrameMs": 14.700000286102295,
+        "settleSpanMs": 33.80000019073486,
+        "triangles": 11848,
+        "drawCalls": 17,
+        "phase": 0,
+        "finite": true
+      }
+    ],
+    "studio": {
+      "audioOutput": "silent timer-driven output",
+      "dragPx": 60,
+      "start": 50,
+      "slider": 60,
+      "model": 60,
+      "hitArea": {
+        "width": 48,
+        "height": 48
+      },
+      "arrivals": [
+        {
+          "step": 0,
+          "swing": 50,
+          "time": 1215.5999999046326
+        },
+        {
+          "step": 1,
+          "swing": 50,
+          "time": 1472.2000002861023
+        },
+        {
+          "step": 2,
+          "swing": 50,
+          "time": 1722.7000002861023
+        },
+        {
+          "step": 3,
+          "swing": 50,
+          "time": 1972.2000002861023
+        },
+        {
+          "step": 4,
+          "swing": 50,
+          "time": 2212.4000000953674
+        },
+        {
+          "step": 5,
+          "swing": 50,
+          "time": 2462.0999999046326
+        },
+        {
+          "step": 6,
+          "swing": 50,
+          "time": 2712.800000190735
+        },
+        {
+          "step": 7,
+          "swing": 50,
+          "time": 2962.0999999046326
+        },
+        {
+          "step": 0,
+          "swing": 50,
+          "time": 3213.2000002861023
+        },
+        {
+          "step": 1,
+          "swing": 50,
+          "time": 3471.9000000953674
+        },
+        {
+          "step": 2,
+          "swing": 50,
+          "time": 3722
+        },
+        {
+          "step": 3,
+          "swing": 50,
+          "time": 3972
+        },
+        {
+          "step": 4,
+          "swing": 50,
+          "time": 4215.300000190735
+        },
+        {
+          "step": 5,
+          "swing": 50,
+          "time": 4465.400000095367
+        },
+        {
+          "step": 6,
+          "swing": 50,
+          "time": 4715.700000286102
+        },
+        {
+          "step": 7,
+          "swing": 50,
+          "time": 4966.300000190735
+        },
+        {
+          "step": 0,
+          "swing": 50,
+          "time": 5210.900000095367
+        },
+        {
+          "step": 1,
+          "swing": 50,
+          "time": 5472
+        },
+        {
+          "step": 2,
+          "swing": 50,
+          "time": 5722
+        },
+        {
+          "step": 3,
+          "swing": 50,
+          "time": 5971
+        },
+        {
+          "step": 4,
+          "swing": 50,
+          "time": 6212.700000286102
+        },
+        {
+          "step": 5,
+          "swing": 50,
+          "time": 6462.900000095367
+        },
+        {
+          "step": 6,
+          "swing": 50,
+          "time": 6713.700000286102
+        },
+        {
+          "step": 7,
+          "swing": 50,
+          "time": 6963.700000286102
+        },
+        {
+          "step": 0,
+          "swing": 75,
+          "time": 7238.300000190735
+        },
+        {
+          "step": 1,
+          "swing": 75,
+          "time": 7605.200000286102
+        },
+        {
+          "step": 2,
+          "swing": 75,
+          "time": 7721.700000286102
+        },
+        {
+          "step": 3,
+          "swing": 75,
+          "time": 8105.200000286102
+        },
+        {
+          "step": 4,
+          "swing": 75,
+          "time": 8215.099999904633
+        },
+        {
+          "step": 5,
+          "swing": 75,
+          "time": 8589.400000095367
+        },
+        {
+          "step": 6,
+          "swing": 75,
+          "time": 8715.900000095367
+        },
+        {
+          "step": 7,
+          "swing": 75,
+          "time": 9091.5
+        },
+        {
+          "step": 0,
+          "swing": 75,
+          "time": 9211.200000286102
+        },
+        {
+          "step": 1,
+          "swing": 75,
+          "time": 9605.099999904633
+        },
+        {
+          "step": 2,
+          "swing": 75,
+          "time": 9721.700000286102
+        },
+        {
+          "step": 3,
+          "swing": 75,
+          "time": 10088.5
+        },
+        {
+          "step": 4,
+          "swing": 75,
+          "time": 10212.5
+        },
+        {
+          "step": 5,
+          "swing": 75,
+          "time": 10587.200000286102
+        },
+        {
+          "step": 6,
+          "swing": 75,
+          "time": 10713.900000095367
+        },
+        {
+          "step": 7,
+          "swing": 75,
+          "time": 11088.5
+        },
+        {
+          "step": 0,
+          "swing": 75,
+          "time": 11214.300000190735
+        },
+        {
+          "step": 1,
+          "swing": 75,
+          "time": 11604
+        },
+        {
+          "step": 2,
+          "swing": 75,
+          "time": 11720.900000095367
+        },
+        {
+          "step": 3,
+          "swing": 75,
+          "time": 12104.099999904633
+        },
+        {
+          "step": 4,
+          "swing": 75,
+          "time": 12215.099999904633
+        },
+        {
+          "step": 5,
+          "swing": 75,
+          "time": 12589.599999904633
+        },
+        {
+          "step": 6,
+          "swing": 75,
+          "time": 12716.900000095367
+        },
+        {
+          "step": 7,
+          "swing": 75,
+          "time": 13090.400000095367
+        },
+        {
+          "step": 0,
+          "swing": 50,
+          "time": 13238.099999904633
+        },
+        {
+          "step": 1,
+          "swing": 55,
+          "time": 13487.900000095367
+        },
+        {
+          "step": 2,
+          "swing": 60,
+          "time": 13721.5
+        },
+        {
+          "step": 3,
+          "swing": 60,
+          "time": 14020.800000190735
+        },
+        {
+          "step": 4,
+          "swing": 60,
+          "time": 14212.200000286102
+        },
+        {
+          "step": 5,
+          "swing": 60,
+          "time": 14514
+        },
+        {
+          "step": 6,
+          "swing": 60,
+          "time": 14712.800000190735
+        }
+      ],
+      "timing": [
+        {
+          "swing": 50,
+          "observedMedianMs": {
+            "onToOff": 250.09999990463257,
+            "offToOn": 250.09999990463257
+          },
+          "expectedMsAt120Bpm": {
+            "onToOff": 250,
+            "offToOn": 250
+          },
+          "samples": {
+            "onToOff": 12,
+            "offToOn": 11
+          },
+          "note": "Arrival of completed worker renders; includes presentation/message latency. Assess visible lateness in the recording."
+        },
+        {
+          "swing": 75,
+          "observedMedianMs": {
+            "onToOff": 374.7000002861023,
+            "offToOn": 119.7000002861023
+          },
+          "expectedMsAt120Bpm": {
+            "onToOff": 375,
+            "offToOn": 125
+          },
+          "samples": {
+            "onToOff": 12,
+            "offToOn": 11
+          },
+          "note": "Arrival of completed worker renders; includes presentation/message latency. Assess visible lateness in the recording."
+        }
+      ],
+      "status": "PASS",
+      "device": "UNVERIFIED: desktop browser recording is not a real-phone test"
+    },
+    "strip": {
+      "count": 64,
+      "passes": 64,
+      "failures": [],
+      "minimumProjectedLedDiameterPx": 5.654438376877295
+    },
+    "screenshots": "hero 3D host desk/light: 690x500\nhero 3D host desk/dark: 690x500\nhero 3D host mob/light: 378x380\nhero 3D host mob/dark: 378x380\nno console errors or warnings\n"
+  }
+}

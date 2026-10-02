@@ -13,6 +13,8 @@ export type SceneState = {
   visible: boolean;
   reduced: boolean;
   instant: boolean;
+  diagnostics: boolean;
+  interactiveDial: boolean;
 };
 export type SceneAction =
   | { type: "state"; state: Partial<SceneState> }
@@ -32,9 +34,12 @@ export type FrameInfo = {
   drawCalls: number;
   triangles: number;
   swing: number;
+  phase: number;
+  orientation: { yaw: number; pitch: number };
 };
 export type SceneEvent =
   | { type: "frame"; frame: FrameInfo }
+  | { type: "dial"; point: Point }
   | { type: "ready" }
   | { type: "poster"; blob: Blob }
   | { type: "error"; message: string };

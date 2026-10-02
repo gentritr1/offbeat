@@ -99,7 +99,7 @@ export function createSpeakerScene(
       const m = new THREE.Mesh(
         shared(
           `rounded:${w}:${h}:${d}:${r}`,
-          () => new RoundedBoxGeometry(w, h, d, 5, r),
+          () => new RoundedBoxGeometry(w, h, d, 3, r),
         ),
         mat,
       );
@@ -367,13 +367,19 @@ export function createSpeakerScene(
       glow = 0,
       current = -1,
       active = Array(8).fill(false) as boolean[];
+    let stripDirty = true;
     const keyHits = [-Infinity, -Infinity, -Infinity];
     let dialAngle = (-(state.swing - 50) * Math.PI) / 180,
       dialVelocity = 0;
     let dialChanged = performance.now(),
-      colorChanged = performance.now();
+      colorChanged = performance.now(),
+      phaseChanged = performance.now();
     const desired = new THREE.Color();
     const vector = new THREE.Vector3();
+    const keyStart = new THREE.Vector3();
+    const keyEnd = new THREE.Vector3();
+    let lastDialX = NaN,
+      lastDialY = NaN;
     function project(point: THREE.Vector3) {
       vector.copy(point).project(camera);
       return {
@@ -406,15 +412,34 @@ export function createSpeakerScene(
       const k = immediate ? 1 : 1 - Math.exp(-dt * 11);
       desired.set(state.color);
       rubber.color.lerp(desired, time - colorChanged >= 480 ? 1 : k);
-      phase = THREE.MathUtils.lerp(phase, state.exploded ? 1 : 0, k);
+      const phaseTarget = Number(state.exploded);
+      phase =
+        immediate || time - phaseChanged >= (state.exploded ? 550 : 350)
+          ? phaseTarget
+          : THREE.MathUtils.lerp(
+              phase,
+              phaseTarget,
+              1 - Math.exp(-dt * (state.exploded ? 14 : 20)),
+            );
       body.position.z = -phase * 0.55;
       front.position.z = phase * 1.7;
-      drivers.position.z = phase * 0.45;
+      // Move the detached grille out of the sightline of the drivers it reveals.
+      front.position.x = -phase * 1.45;
+      front.position.y = -phase * 0.55;
+      front.rotation.y = -phase * 0.25;
+      // Closed cones sit behind the grille instead of appearing through it at
+      // the first visible explode frame. The open position is unchanged.
+      drivers.position.z = -0.32 + phase * 0.77;
       drivers.visible = phase > 0.025;
       const baseZ =
         (state.compact ? 9.8 : state.width < 430 ? 10.7 : 9.4) / state.zoom;
-      camera.position.set(0, 3.1 + phase * 0.5, baseZ + phase * 3.2);
-      camera.lookAt(0, 0.05 - phase * 0.15, 0);
+      const narrow = state.width < 430;
+      camera.position.set(
+        0,
+        3.1 + phase * 0.5,
+        baseZ + phase * (narrow ? 5.5 : 3.2),
+      );
+      camera.lookAt(narrow ? -phase * 0.45 : 0, 0.05 - phase * 0.15, 0);
       root.rotation.y = THREE.MathUtils.lerp(
         root.rotation.y,
         yaw + state.rotation,
@@ -439,64 +464,91 @@ export function createSpeakerScene(
       root.scale.set(1 + 0.016 * thump, squash, 1 + 0.016 * thump);
       root.position.y = -1.4 * (1 - squash);
       ledMaterial.color.copy(ledIdle).lerp(ledLive, Math.min(1, glow * 1.4));
-      scene.updateMatrixWorld(true);
+      // Key projection only needs the enclosure transform; the renderer updates
+      // every child once after key positions are final.
+      body.updateWorldMatrix(true, false);
       camera.updateMatrixWorld();
       for (let i = 0; i < keys.length; i++) {
         keys[i].position.y = 1.345;
-        body.updateMatrixWorld(true);
-        const start = world(keys[i]),
-          a = project(start),
-          b = project(start.clone().add(new THREE.Vector3(0, -1, 0)));
+        const depth = state.reduced ? 0 : keyDepth(time - keyHits[i]);
+        if (!depth) continue;
+        // Transform only these two points, rather than traversing the entire body
+        // once for every key on every frame (including frames with no key press).
+        keyStart.copy(keys[i].position).applyMatrix4(body.matrixWorld);
+        keyEnd.copy(keys[i].position);
+        keyEnd.y -= 1;
+        keyEnd.applyMatrix4(body.matrixWorld);
+        const a = project(keyStart),
+          b = project(keyEnd);
         const travel = Math.max(
           0.037,
           2.2 / Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
         );
-        keys[i].position.y -= state.reduced
-          ? 0
-          : travel * keyDepth(time - keyHits[i]);
+        keys[i].position.y -= travel * depth;
       }
-      strip.forEach((_, i) =>
-        diffusers.setColorAt(
-          i,
-          i === current ? currentStep : active[i] ? activeStep : idleStep,
-        ),
-      );
-      if (diffusers.instanceColor) diffusers.instanceColor.needsUpdate = true;
+      if (stripDirty) {
+        strip.forEach((_, i) =>
+          diffusers.setColorAt(
+            i,
+            i === current ? currentStep : active[i] ? activeStep : idleStep,
+          ),
+        );
+        if (diffusers.instanceColor) diffusers.instanceColor.needsUpdate = true;
+        stripDirty = false;
+      }
       if (first) {
-        // compileAsync builds the programs, but the GPU finishes pipeline setup and
-        // buffer upload on the first real draw. Draw the hidden drivers once into a
-        // single scissored pixel now; the full render below repaints it in this frame.
+        // A corner scissor misses all driver fragments and cannot warm their GPU
+        // pipeline. Draw actual visible fragments behind the loading poster, then
+        // repaint the final assembled view within this same animation callback.
         const shown = drivers.visible;
         drivers.visible = true;
-        renderer.setScissorTest(true);
-        renderer.setScissor(0, 0, 1, 1);
+        body.visible = false;
+        front.visible = false;
         renderer.render(scene, camera);
-        renderer.setScissorTest(false);
+        body.visible = true;
+        front.visible = true;
         drivers.visible = shown;
       }
       renderer.render(scene, camera);
-      const leds = strip.map((mesh) => {
-        const center = world(mesh),
-          point = project(center),
-          edge = project(center.clone().add(new THREE.Vector3(0.058, 0, 0)));
-        return {
-          ...point,
-          radius: Math.hypot(edge.x - point.x, edge.y - point.y),
-        };
-      });
-      emit({
-        type: "frame",
-        frame: {
-          step: current,
-          active,
-          dial: project(world(dialGroup)),
-          leds,
-          keys: keys.map((mesh) => project(world(mesh))),
-          drawCalls: renderer.info.render.calls,
-          triangles: renderer.info.render.triangles,
-          swing: state.swing,
-        },
-      });
+      if (state.diagnostics) {
+        const leds = strip.map((mesh) => {
+          const center = world(mesh),
+            point = project(center),
+            edge = project(center.clone().add(new THREE.Vector3(0.058, 0, 0)));
+          return {
+            ...point,
+            radius: Math.hypot(edge.x - point.x, edge.y - point.y),
+          };
+        });
+        emit({
+          type: "frame",
+          frame: {
+            step: current,
+            active,
+            dial: project(world(dialGroup)),
+            leds,
+            keys: keys.map((mesh) => project(world(mesh))),
+            drawCalls: renderer.info.render.calls,
+            triangles: renderer.info.render.triangles,
+            swing: state.swing,
+            phase,
+            orientation: { yaw: root.rotation.y, pitch: root.rotation.x },
+          },
+        });
+      } else if (state.interactiveDial) {
+        const point = project(world(dialGroup));
+        // Only the studio needs a projected DOM hit target. Other stages send no
+        // per-frame traffic; QA-only LED/key projections never run in production.
+        if (
+          Math.abs(point.x - lastDialX) > 0.1 ||
+          Math.abs(point.y - lastDialY) > 0.1 ||
+          !Number.isFinite(lastDialX)
+        ) {
+          lastDialX = point.x;
+          lastDialY = point.y;
+          emit({ type: "dial", point });
+        }
+      }
       if (first) {
         first = false;
         emit({ type: "ready" });
@@ -595,6 +647,21 @@ export function createSpeakerScene(
         }
         if (action.type === "state") {
           if (
+            (action.state.rotation !== undefined &&
+              action.state.rotation !== state.rotation) ||
+            (action.state.exploded !== undefined &&
+              action.state.exploded !== state.exploded)
+          ) {
+            // A named anatomy view must be predictable after a visitor freely orbits.
+            yaw = -0.44;
+            pitch = 0.05;
+          }
+          if (
+            action.state.exploded !== undefined &&
+            action.state.exploded !== state.exploded
+          )
+            phaseChanged = performance.now();
+          if (
             action.state.color !== undefined &&
             action.state.color !== state.color
           )
@@ -617,10 +684,12 @@ export function createSpeakerScene(
           yaw = -0.44;
           pitch = 0.05;
           state.instant = true;
-        } else if (action.type === "pattern")
+        } else if (action.type === "pattern") {
           active = activeSteps(action.pattern);
-        else if (action.type === "beat") {
+          stripDirty = true;
+        } else if (action.type === "beat") {
           current = action.beat.step;
+          stripDirty = true;
           const hit = action.beat.tracks;
           if (hit[0] && !state.reduced) thump = 1;
           if (hit.some(Boolean)) glow = 1;
@@ -629,6 +698,7 @@ export function createSpeakerScene(
           });
         } else if (action.type === "stop") {
           current = -1;
+          stripDirty = true;
           thump = 0;
           glow = 0;
           keyHits.fill(-Infinity);

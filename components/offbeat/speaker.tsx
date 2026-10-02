@@ -102,6 +102,7 @@ export default function Speaker({
       usingWorker = false;
     let canvas: HTMLCanvasElement | null = null;
     let pendingBeat: Beat | null = null;
+    let posterTimer = 0;
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     let drag: {
       id: number;
@@ -126,6 +127,10 @@ export default function Speaker({
       visible: visible && !document.hidden,
       reduced: reduced.matches,
       instant: false,
+      diagnostics: Boolean(
+        (globalThis as { __offbeatQA?: boolean }).__offbeatQA,
+      ),
+      interactiveDial: Boolean(values.current.onSwingChange),
     });
     const send = (action: SceneAction) => controller.current?.send(action);
     function receive(event: SceneEvent) {
@@ -133,7 +138,8 @@ export default function Speaker({
       if (event.type === "ready") {
         node.dataset.ready = "true";
         // Matches the 180ms opacity hand-off in globals.css, plus a frame.
-        window.setTimeout(() => {
+        window.clearTimeout(posterTimer);
+        posterTimer = window.setTimeout(() => {
           if (!cancelled) setPosterDone(true);
         }, 220);
         return;
@@ -154,6 +160,11 @@ export default function Speaker({
         );
         return;
       }
+      if (event.type === "dial") {
+        if (dial.current)
+          dial.current.style.transform = `translate(${event.point.x - 24}px, ${event.point.y - 24}px)`;
+        return;
+      }
       const frame = event.frame;
       if (dial.current)
         dial.current.style.transform = `translate(${frame.dial.x - 24}px, ${frame.dial.y - 24}px)`;
@@ -170,6 +181,8 @@ export default function Speaker({
         send({ type: "dispose" });
         controller.current = null;
         canvas?.remove();
+        window.clearTimeout(posterTimer);
+        setPosterDone(false);
         delete node.dataset.ready;
         canvas = document.createElement("canvas");
         canvas.setAttribute("aria-hidden", "true");
@@ -318,6 +331,7 @@ export default function Speaker({
     void initialize(true);
     return () => {
       cancelled = true;
+      window.clearTimeout(posterTimer);
       send({ type: "dispose" });
       controller.current = null;
       canvas?.remove();

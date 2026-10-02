@@ -7,7 +7,12 @@ const throttle = Number(process.argv[3] || 1);
 const browser = await chromium.launch({
   channel: "chrome",
   headless: false,
-  args: ["--window-position=-2400,0"],
+  args: [
+    "--window-position=-2400,0",
+    ...(process.env.OFFBEAT_FAKE_AUDIO === "1"
+      ? ["--disable-audio-output"]
+      : []),
+  ],
 });
 try {
   const page = await browser.newPage({
@@ -17,23 +22,34 @@ try {
     await (
       await page.context().newCDPSession(page)
     ).send("Emulation.setCPUThrottlingRate", { rate: throttle });
-  const budget = await page.evaluate(
-    () =>
-      new Promise((resolve) => {
-        const times = [];
-        let last;
-        function tick(now) {
-          if (last !== undefined) times.push(now - last);
-          last = now;
-          if (times.length < 90) requestAnimationFrame(tick);
-          else {
-            times.sort((a, b) => a - b);
-            resolve(times[45]);
+  let budget;
+  async function calibrate() {
+    return await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const times = [];
+          let last;
+          function tick(now) {
+            if (last !== undefined) times.push(now - last);
+            last = now;
+            if (times.length < 180) requestAnimationFrame(tick);
+            else {
+              times.sort((a, b) => a - b);
+              // Average paired short/long rounded intervals on the actual page.
+              // about:blank's startup cadence is not the loaded page's cadence.
+              const median = times[90];
+              const regular = times.filter(
+                (ms) => ms > median * 0.5 && ms < median * 1.5,
+              );
+              const period =
+                regular.reduce((sum, ms) => sum + ms, 0) / regular.length;
+              resolve(period);
+            }
           }
-        }
-        requestAnimationFrame(tick);
-      }),
-  );
+          requestAnimationFrame(tick);
+        }),
+    );
+  }
   async function start() {
     await page.evaluate(() => {
       const generation = (window.__probeGeneration =
@@ -67,11 +83,15 @@ try {
     );
     const residual = expected - frames.length - missedSlots;
     const over = frames.filter((ms) => ms > budget * 2).length;
-    const reconciles = Math.abs(residual) <= Math.max(2, expected * 0.02);
+    const reconciles = Math.abs(residual) <= 2;
     console.log(
       JSON.stringify({
         label,
         throttle,
+        audioOutput:
+          process.env.OFFBEAT_FAKE_AUDIO === "1"
+            ? "silent timer-driven output"
+            : "system",
         hz: Number((1000 / budget).toFixed(2)),
         durationMs: Number(duration.toFixed(2)),
         frames: frames.length,
@@ -93,6 +113,7 @@ try {
     () => document.querySelector(".speaker-canvas")?.dataset.ready === "true",
   );
   await page.waitForTimeout(4000);
+  budget = await calibrate();
   const box = await page.locator(".speaker-canvas").first().boundingBox();
   await start();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
@@ -115,6 +136,17 @@ try {
     () => document.querySelector(".speaker-canvas")?.dataset.ready === "true",
   );
   await page.click(".play-circle");
+  // A stalled platform audio clock used to produce a misleading playback pass.
+  // The real playhead must visit distinct steps, with or without fake output.
+  const steps = new Set();
+  for (let i = 0; i < 12; i++) {
+    steps.add(await page.locator(".sequencer").getAttribute("data-step"));
+    await page.waitForTimeout(100);
+  }
+  if (steps.size < 3)
+    throw new Error(
+      "Playback clock stalled: fewer than three distinct steps. Audio/frame pacing is UNVERIFIED.",
+    );
   await page.waitForTimeout(400);
   await start();
   await page.waitForTimeout(3000);
