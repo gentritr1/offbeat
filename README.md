@@ -41,6 +41,6 @@ For the current review, see `POLISH-REVIEW.md`; `3D-REVIEW.md` retains the earli
 
 Node 24 typecheck, 13 tests, and the production static export pass. Tests cover shared pad positions, malformed links, PCM WAV structure, audio lifecycle/scheduling, swing timing, gesture mapping and springs. The initial creation session could not launch a local server/browser; the later Chrome review now covers the rendered pages and 3D controls. Strict frame-budget checks still have failures, and audible loop seams, real-phone touch/iOS audio and browser export paths need their own checks. See the current report for exact coverage rather than treating a build pass as visual or device approval.
 
-Publication was attempted through the Sites source workflow, but this session could not resolve the hosting repository domain. The hosting manifest retains the registered private Site identity for a later retry. No version is live.
+The hosting manifest retains the registered owner-private Site identity. Publish the static `out/` export with that same identity; Sites deployment status is authoritative for the current live version. See `POLISH-REVIEW.md` for the resumed review and measured limits.
 
 Optional WebMCP actions expose finish selection and preset selection when supported. Unsupported browsers keep the normal UI. Their browser registration could not be validated in this environment.

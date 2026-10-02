@@ -390,9 +390,13 @@ export function createSpeakerScene(
     function world(mesh: THREE.Object3D) {
       return mesh.getWorldPosition(new THREE.Vector3());
     }
-    function wake() {
-      if (!disposed && !warming && state.visible && !frame)
+    function wake(continuing = false) {
+      if (!disposed && !warming && state.visible && !frame) {
+        // An on-demand renderer can sleep for seconds. Only elapsed animation
+        // time belongs in damping: do not spend a stale 40ms on the first frame.
+        if (!continuing) prev = performance.now();
         frame = requestAnimationFrame(render);
+      }
     }
     function resize() {
       renderer.setSize(
@@ -406,7 +410,8 @@ export function createSpeakerScene(
     function render(time: number) {
       frame = 0;
       if (disposed || !state.visible) return;
-      const dt = Math.min((time - prev) / 1000, 0.04) || 0.016;
+      // RAF timestamps identify frame start and may slightly precede wake().
+      const dt = Math.max(0, Math.min((time - prev) / 1000, 0.04));
       prev = time;
       const immediate = state.reduced || state.instant;
       const k = immediate ? 1 : 1 - Math.exp(-dt * 11);
@@ -566,7 +571,7 @@ export function createSpeakerScene(
           Math.abs(rubber.color.g - desired.g) +
           Math.abs(rubber.color.b - desired.b) >
           0.0001;
-      if (settling) wake();
+      if (settling) wake(true);
     }
     function dispose() {
       if (disposed) return;

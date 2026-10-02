@@ -1,5 +1,20 @@
 # OFFBEAT polish review — 2 October 2026
 
+## Resumed completion — 2 October, afternoon
+
+Continued from `7669a73`. The saved prior changes were intact. This follow-up fixes an additional visible motion discontinuity and closes the remaining LED/key raster measurement gap in part. It does **not** claim the cold first-opening performance issue is solved.
+
+- **Fixed idle-to-motion jump:** an idle renderer used its stale previous-frame timestamp, spending the 40ms clamp on the first animated frame. Opening jumped directly to phase **0.42879 (43%)**. Resetting the clock when waking, while preserving it during continuous animation, starts at **0**, then advances normally. Non-negative elapsed time also handles RAF frame-start timestamps that precede the wake call. `scripts/qa/motion-onset.mjs` verifies bounded, monotonic phases and completion.
+- **Opening/closing:** input-to-last-frame **566/364ms**. Interrupted opening returns assembled in **363ms** after the reversal; all coordinates finite. Keyboard opening takes one frame, **8ms**. Latest recording: `docs/qa/resume-2026-10-02/anatomy.webm`.
+- **Pixel evidence:** `scripts/qa/hardware.mjs` uses projections only to locate windows, then measures real screenshot pixels. All eight illuminated LEDs measure **5–7px at 390**, **5–7px at 768**, and **6–9px at 1440**. Snare and hat/bass keys show **2px upper-edge movement at all three widths**; the untouched kick key stays at 0px as a control. The check sends controlled worker beats and freezes the rendered pose near peak press; it is not an audio-sync test. Independent kick-key travel with whole-body squash remains unmeasured.
+- **Interactions:** all 9 route/width checks pass with no overflow, errors or retained loading posters. 60px dial drag produces swing 60 in both render paths; keyboard/reduced-motion End produces 75; worker failure restores the poster and recovers while preserving swing. No idle or home-drag diagnostic messages in production.
+- **Performance, final repeat:** at 1×, drag/playback/vinyl maximum **9.4/9.4/9.3ms**; at 4×, **9.4/9.3/9.3ms**, with zero frames over twice the budget in those samples. Every final sample reconciles its frame count. **First opening still fails:** one **57.5ms** frame at 1× and one **75.1ms** frame at 4×. Earlier fresh runs reached 9.3ms, demonstrating variability, not a consistent fix. No repeated-until-pass result replaces these failures.
+- **Build:** typecheck, 13 unit tests, and production static export pass. Model geometry/materials/poster poses are unchanged, so the prior colour/64-step checks remain the applicable evidence. This pass retains the previous load-frame limitation; it does not relabel it a pass.
+
+Raw results and six hardware screenshots are committed under `docs/qa/resume-2026-10-02/`. Chrome on this Mac at 120Hz; playback performance uses the explicitly silent timer-driven output. Real-phone touch, iOS audio, audible loop seams, the separate analyser/material feature stages, and owner motion-feel approval remain outside the verified result.
+
+## Previous saved pass
+
 The existing product direction is coherent: Archivo/Martian Mono typography, chartreuse for programmed steps, vermilion for the live playhead, physical controls, and restrained motion. This pass preserves that direction and improves the 3D implementation. The result is a stronger portfolio demo, but it does **not** meet every strict performance gate consistently. Cold first-explode timing remains variable; real-phone and audible checks remain unverified.
 
 Compared against `bc26841`, using the local production export, Chrome 154.0.8037.97 on the Mac, Node 24.18.0, and 390/768/1440px viewports. Playback measurements explicitly use `OFFBEAT_FAKE_AUDIO=1`: Web Audio runs with a timer-driven silent output. That exercises scheduling and visuals, not the speakers or iOS audio stack.

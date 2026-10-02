@@ -1,0 +1,52 @@
+[
+  {
+    "label": "explode",
+    "frames": 35,
+    "inputToLastFrameMs": 565.6999998092651,
+    "settleSpanMs": 520.3000001907349,
+    "triangles": 17608,
+    "drawCalls": 25,
+    "phase": 1,
+    "finite": true
+  },
+  {
+    "label": "collapse",
+    "frames": 23,
+    "inputToLastFrameMs": 364.40000009536743,
+    "settleSpanMs": 349.59999990463257,
+    "triangles": 11848,
+    "drawCalls": 17,
+    "phase": 0,
+    "finite": true
+  },
+  {
+    "label": "interrupted explode returns assembled",
+    "frames": 37,
+    "inputToLastFrameMs": 363.09999990463257,
+    "settleSpanMs": 583.6999998092651,
+    "triangles": 11848,
+    "drawCalls": 17,
+    "phase": 0,
+    "finite": true
+  },
+  {
+    "label": "keyboard explode",
+    "frames": 1,
+    "inputToLastFrameMs": 8.100000381469727,
+    "settleSpanMs": 0,
+    "triangles": 17608,
+    "drawCalls": 25,
+    "phase": 1,
+    "finite": true
+  },
+  {
+    "label": "reduced-motion collapse",
+    "frames": 2,
+    "inputToLastFrameMs": 10.599999904632568,
+    "settleSpanMs": 41.59999990463257,
+    "triangles": 11848,
+    "drawCalls": 17,
+    "phase": 0,
+    "finite": true
+  }
+]

@@ -1,0 +1,142 @@
+{
+  "pages": [
+    {
+      "width": 390,
+      "route": "/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "route": "/design/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 390,
+      "route": "/studio/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "route": "/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "route": "/design/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 768,
+      "route": "/studio/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "route": "/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "route": "/design/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    },
+    {
+      "width": 1440,
+      "route": "/studio/",
+      "overflow": false,
+      "renderer": "worker",
+      "retainedPosters": 0,
+      "errors": []
+    }
+  ],
+  "traffic": {
+    "idle": 0,
+    "drag": {
+      "messages": 0,
+      "framePayloads": 0,
+      "bytes": 0
+    }
+  },
+  "checks": [
+    {
+      "production": true,
+      "width": 390,
+      "action": "60px production dial drag",
+      "slider": 60
+    },
+    {
+      "production": true,
+      "width": 768,
+      "action": "60px production dial drag",
+      "slider": 60
+    },
+    {
+      "production": true,
+      "width": 1440,
+      "action": "60px production dial drag",
+      "slider": 60
+    },
+    {
+      "fallback": false,
+      "action": "60px dial drag",
+      "slider": 60,
+      "model": 60,
+      "hitArea": [
+        48,
+        48
+      ]
+    },
+    {
+      "fallback": false,
+      "action": "reduced-motion keyboard End",
+      "slider": 75,
+      "model": 75
+    },
+    {
+      "fallback": true,
+      "action": "60px dial drag",
+      "slider": 60,
+      "model": 60,
+      "hitArea": [
+        48,
+        48
+      ]
+    },
+    {
+      "fallback": true,
+      "action": "reduced-motion keyboard End",
+      "slider": 75,
+      "model": 75
+    }
+  ],
+  "recovery": {
+    "posterObserved": true,
+    "renderer": "main",
+    "swing": 60
+  },
+  "status": "PASS"
+}
